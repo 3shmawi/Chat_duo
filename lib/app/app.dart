@@ -1,3 +1,4 @@
+import 'package:chat_duo/screens/_resources/theme.dart';
 import 'package:chat_duo/screens/splash.dart';
 import 'package:flutter/material.dart';
 
@@ -6,9 +7,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      theme: AppTheme.light,
+      themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }
