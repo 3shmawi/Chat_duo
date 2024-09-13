@@ -22,7 +22,7 @@ class AppFormField extends StatefulWidget {
 }
 
 class _AppFormFieldState extends State<AppFormField> {
-  bool isPassword = false;
+  bool isPassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class _AppFormFieldState extends State<AppFormField> {
           ),
           child: TextFormField(
             controller: widget.controller,
-            obscureText: isPassword,
+            obscureText: widget.enablePasswordVisibilityIcon && isPassword,
             decoration: InputDecoration(
               hintText: widget.hintText,
             ),

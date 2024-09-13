@@ -1,9 +1,8 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/resources/theme.dart';
+import 'package:chat_duo/screens/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../screens/chat/home.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -21,7 +20,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-            home: const ChatHomeScreen(),
+            home: const SplashScreen(),
           );
         },
       ),

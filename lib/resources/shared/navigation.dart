@@ -12,3 +12,10 @@ toAndReplace(BuildContext context, page) =>
         builder: (context) => page,
       ),
     );
+toAndFinish(BuildContext context, page) =>
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => page,
+      ),
+      (route) => false,
+    );
