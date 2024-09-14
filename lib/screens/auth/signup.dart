@@ -1,12 +1,12 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
-import 'package:chat_duo/screens/auth/signup.dart';
+import 'package:chat_duo/screens/auth/login.dart';
 import 'package:chat_duo/screens/layout/layout_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatelessWidget {
+  const SignupScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +15,6 @@ class LoginScreen extends StatelessWidget {
         listener: (context, state) {
           if (state is AuthSuccessState) {
             toAndFinish(context, const LayoutView());
-          } else {
-            print('Error');
           }
         },
         builder: (context, state) {
@@ -38,10 +36,18 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   TextField(
+                    controller: cubit.usernameCtrl,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'User Name',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
                     controller: cubit.emailCtrl,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      hintText: 'Username/email',
+                      hintText: 'Email Address',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -55,8 +61,8 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 40),
                   ElevatedButton(
-                    onPressed: state is AuthLoadingState ? null : cubit.login,
-                    child: const Text('LOGIN'),
+                    onPressed: state is AuthLoadingState ? null : cubit.signUp,
+                    child: const Text('SIGNUP'),
                   ),
                   if (state is AuthLoadingState)
                     const Padding(
@@ -66,12 +72,12 @@ class LoginScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account?"),
+                      const Text("Already have an account?"),
                       TextButton(
                         onPressed: () {
-                          toAndReplace(context, const SignupScreen());
+                          toAndReplace(context, const LoginScreen());
                         },
-                        child: const Text("Signup"),
+                        child: const Text("Login"),
                       ),
                     ],
                   )
