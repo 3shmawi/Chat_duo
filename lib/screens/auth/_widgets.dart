@@ -41,6 +41,10 @@ class _AppFormFieldState extends State<AppFormField> {
             obscureText: widget.enablePasswordVisibilityIcon && isPassword,
             decoration: InputDecoration(
               hintText: widget.hintText,
+              hintStyle: TextStyle(
+                fontSize: 16,
+                color: AppColors.grey,
+              ),
             ),
           ),
         ),

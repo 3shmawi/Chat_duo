@@ -1,5 +1,6 @@
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/resources/shared/toast.dart';
+import 'package:chat_duo/services/local_strage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -39,13 +40,16 @@ class AppCtrl extends Cubit<AppStates> {
     )
         .then((response) async {
       user = await getUserData(response.user!.uid);
+      CacheHelper.saveData(key: "myId", value: user!.id);
+      emailCtrl.clear();
+      passwordCtrl.clear();
       if (user!.isLoggedIn) {
-        AppToast.error("This email is already logged in");
+        AppToast.error("This email is already logged in at another app");
         emit(AuthFailedState());
       } else {
         emit(AuthSuccessState());
+        AppToast.success("Logged in successfully");
       }
-      AppToast.success("Logged in successfully");
     }).catchError((error) {
       AppToast.error(error.message);
       emit(AuthFailedState());
@@ -67,6 +71,10 @@ class AppCtrl extends Cubit<AppStates> {
     )
         .then((response) async {
       await _createUser(response.user!.uid);
+      CacheHelper.saveData(key: "myId", value: user!.id);
+      emailCtrl.clear();
+      passwordCtrl.clear();
+      usrNameCtrl.clear();
       emit(AuthSuccessState());
       AppToast.success("User created successfully");
     }).catchError((error) {
@@ -120,14 +128,31 @@ class AppCtrl extends Cubit<AppStates> {
           .collection('users')
           .doc(user!.id)
           .update({"is_logged_in": false});
+      CacheHelper.removeData(key: "myId");
 
       await _auth.signOut();
       user = null;
+      AppToast.success("Logout was successful");
+
       return true;
     } catch (e) {
       AppToast.error(e.toString());
       return false;
     }
+  }
+
+  //chat
+
+  Future<List<UserModel>> getAllUsers() async {
+    return _database.collection('users').get().then((snapshot) {
+      print(snapshot.docs);
+      return snapshot.docs
+          .map((doc) => UserModel.fromJson(doc.data()))
+          .toList();
+    }).catchError((error) {
+      AppToast.error(error.message);
+      throw error;
+    });
   }
 }
 

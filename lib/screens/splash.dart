@@ -1,7 +1,11 @@
+import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/resources/assets.dart';
 import 'package:chat_duo/resources/colors.dart';
 import 'package:chat_duo/resources/shared/navigation.dart';
+import 'package:chat_duo/screens/chat/home.dart';
+import 'package:chat_duo/services/local_strage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth/login.dart';
 
@@ -13,11 +17,29 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final myId = CacheHelper.getData(key: "myId");
+
   @override
   void initState() {
     super.initState();
+    if (myId != null) {
+      context.read<AppCtrl>().getMyData(myId);
+
+      _navigateToHomeScreen(context);
+    } else {
+      _navigateToLoginScreen(context);
+    }
+  }
+
+  void _navigateToLoginScreen(BuildContext context) {
     Future.delayed(const Duration(seconds: 2)).then(
       (_) => toAndReplace(context, const LoginScreen()),
+    );
+  }
+
+  void _navigateToHomeScreen(BuildContext context) {
+    Future.delayed(const Duration(seconds: 2)).then(
+      (_) => toAndReplace(context, const ChatHomeScreen()),
     );
   }
 

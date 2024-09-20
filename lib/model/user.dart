@@ -25,7 +25,7 @@ class UserModel {
       avatar: json['avatar'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
-      isLoggedIn: json['is_logged_in'],
+      isLoggedIn: json['is_logged_in'] ?? false,
     );
   }
 

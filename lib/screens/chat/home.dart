@@ -1,9 +1,13 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/resources/assets.dart';
 import 'package:chat_duo/resources/colors.dart';
+import 'package:chat_duo/resources/shared/navigation.dart';
+import 'package:chat_duo/screens/auth/login.dart';
 import 'package:chat_duo/screens/chat/details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '_widgets.dart';
 
 class ChatHomeScreen extends StatelessWidget {
   const ChatHomeScreen({super.key});
@@ -35,12 +39,24 @@ class ChatHomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.cyan,
+                  color: Colors.orange,
                 ),
               ),
             ],
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              context.read<AppCtrl>().logout().then((isSuccess) {
+                if (isSuccess) {
+                  toAndFinish(context, const LoginScreen());
+                }
+              });
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -94,91 +110,20 @@ class ChatHomeScreen extends StatelessWidget {
               ),
             );
           },
-          child: _item(),
+          child: ListTile(),
+          // child: const HomeChatCardItem(),
         ),
         itemCount: 10,
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.deepPurple,
+        onPressed: () {
+          showModalBottomSheet(
+              context: context,
+              builder: (context) => const NewChatModelSheet());
+        },
+        child: const Icon(Icons.chat),
+      ),
     );
   }
-
-  Widget _item() => Card(
-        elevation: 5,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircleAvatar(
-                radius: 30,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            "Mohamed Ashmawi Mohamed Ashmawi Mohamed Ashmawi Mohamed Ashmawi Mohamed Ashmawi ",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        PopupMenuButton(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              child: Text("Option 1"),
-                            ),
-                            const PopupMenuItem(
-                              child: Text("Option 2"),
-                            ),
-                            const PopupMenuItem(
-                              child: Text("Option 3"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            " last message last message last message last message last message last message vlast message",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Text(
-                              "date",
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
 }
