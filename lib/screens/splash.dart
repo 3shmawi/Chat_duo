@@ -1,3 +1,4 @@
+import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
 import 'package:flutter/material.dart';
 
@@ -13,11 +14,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2)).then(
-      (_) => Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-      ),
+      (_) => toAndReplace(context, const LoginScreen()),
     );
   }
 
