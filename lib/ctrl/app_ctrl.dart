@@ -1,5 +1,6 @@
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
+import 'package:chat_duo/services/local_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -32,6 +33,7 @@ class AppCtrl extends Cubit<AppStates> {
       user = await getUserData(response.user!.uid);
       emailCtrl.clear();
       passwordCtrl.clear();
+      CacheHelper.saveData(key: "myId", value: response.user!.uid);
       AppToast.success("Logged in successfully");
       emit(AuthSuccessState());
     }).catchError((error) {
@@ -56,7 +58,7 @@ class AppCtrl extends Cubit<AppStates> {
       passwordCtrl.clear();
       emailCtrl.clear();
       AppToast.success("Account created successfully");
-
+      CacheHelper.saveData(key: "myId", value: response.user!.uid);
       emit(AuthSuccessState());
     }).catchError((error) {
       AppToast.error("Failed to create account ${error.toString()}");
@@ -94,6 +96,19 @@ class AppCtrl extends Cubit<AppStates> {
     }).catchError((error) {
       throw Exception('Error getting document: $error');
     });
+  }
+
+  Future<bool> logout() async {
+    try {
+      await _auth.signOut();
+      user = null;
+      CacheHelper.removeData(key: "myId");
+      AppToast.success("Logging out user successfully");
+      return true;
+    } catch (e) {
+      AppToast.error("Error logging out: $e");
+      return false;
+    }
   }
 }
 

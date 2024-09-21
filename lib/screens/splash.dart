@@ -2,6 +2,7 @@ import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
 import 'package:chat_duo/screens/layout/layout_view.dart';
+import 'package:chat_duo/services/local_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -15,12 +16,12 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final myId = "";
+  final myId = CacheHelper.getData(key: "myId");
 
   @override
   void initState() {
     super.initState();
-    if (myId != "") {
+    if (myId != null) {
       _getMyData();
     } else {
       Future.delayed(const Duration(seconds: 2)).then(
