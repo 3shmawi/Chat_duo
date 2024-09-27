@@ -1,7 +1,9 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
-import 'package:chat_duo/model/user.dart';
+import 'package:chat_duo/resources/shared/navigation.dart';
+import 'package:chat_duo/screens/chat/details.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class NewChatModelSheet extends StatelessWidget {
   const NewChatModelSheet({super.key});
@@ -23,16 +25,22 @@ class NewChatModelSheet extends StatelessWidget {
             color: Colors.orange,
           ),
           Expanded(
-            child: FutureBuilder<List<UserModel>>(
-                future: AppCtrl().getAllUsers(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+            child: BlocBuilder<AppCtrl, AppStates>(
+                buildWhen: (_, current) =>
+                    current is GetAllUsersLoadingState ||
+                    current is GetAllUsersSuccessState ||
+                    current is GetAllUsersFailedState,
+                builder: (context, state) {
+                  if (state is GetAllUsersLoadingState) {
                     return const Center(
                       child: CircularProgressIndicator(),
                     );
                   }
-                  final users = snapshot.data;
-                  if (users == null || users.isEmpty) {
+                  final cubit = context.read<AppCtrl>();
+                  final users = cubit.searchCtrl.text.isEmpty
+                      ? cubit.allUsers
+                      : cubit.filteredAllUsers;
+                  if (users.isEmpty) {
                     return const Center(
                       child: Text(
                         "No users found",
@@ -43,15 +51,32 @@ class NewChatModelSheet extends StatelessWidget {
                       ),
                     );
                   }
-                  return ListView.builder(
-                    itemBuilder: (context, index) => HomeChatCardItem(
-                      ChatModel(
-                        user: users[index],
-                        lastMessage: "Start chat with ${users[index].name}",
-                        date: "",
+                  return RefreshIndicator(
+                    onRefresh: () async => cubit.refreshAllUsers(),
+                    child: ListView.builder(
+                      itemBuilder: (context, index) => InkWell(
+                        onTap: () {
+                          toPage(
+                            context,
+                            DetailsScreen(
+                              ChatModel(
+                                user: users[index],
+                                lastMessage: "",
+                                date: "",
+                              ),
+                            ),
+                          );
+                        },
+                        child: HomeChatCardItem(
+                          ChatModel(
+                            user: users[index],
+                            lastMessage: "Start chat with ${users[index].name}",
+                            date: "",
+                          ),
+                        ),
                       ),
+                      itemCount: users.length,
                     ),
-                    itemCount: users.length,
                   );
                 }),
           ),
@@ -89,9 +114,15 @@ class _NewChatSearchBarState extends State<NewChatSearchBar> {
               ),
             ),
             secondChild: TextField(
+              controller: context.read<AppCtrl>().searchCtrl,
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.search,
-              onSubmitted: (v) {},
+              onSubmitted: (v) {
+                context.read<AppCtrl>().searchAllUsers();
+              },
+              onChanged: (v) {
+                context.read<AppCtrl>().searchAllUsers();
+              },
               decoration: InputDecoration(
                 hintText: 'Search for contacts...',
                 hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),

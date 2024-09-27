@@ -143,16 +143,36 @@ class AppCtrl extends Cubit<AppStates> {
 
   //chat
 
-  Future<List<UserModel>> getAllUsers() async {
-    return _database.collection('users').get().then((snapshot) {
-      print(snapshot.docs);
-      return snapshot.docs
-          .map((doc) => UserModel.fromJson(doc.data()))
-          .toList();
+  List<UserModel> allUsers = [];
+
+  void refreshAllUsers() {
+    allUsers.clear();
+    getAllUsers();
+  }
+
+  void getAllUsers() {
+    if (allUsers.isNotEmpty) return;
+    emit(GetAllUsersLoadingState());
+    _database.collection('users').get().then((snapshot) {
+      allUsers =
+          snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      emit(GetAllUsersSuccessState());
     }).catchError((error) {
       AppToast.error(error.message);
-      throw error;
+      emit(GetAllUsersFailedState());
     });
+  }
+
+  //search user form all users
+  final searchCtrl = TextEditingController();
+  List<UserModel> filteredAllUsers = [];
+
+  void searchAllUsers() {
+    filteredAllUsers = allUsers
+        .where((user) =>
+            user.name.toLowerCase().contains(searchCtrl.text.toLowerCase()))
+        .toList();
+    emit(GetAllUsersSuccessState());
   }
 }
 
@@ -175,3 +195,9 @@ class GetUserDataLoadingState extends AppStates {}
 class GetUserDataSuccessState extends AppStates {}
 
 class GetUserDataFailedState extends AppStates {}
+
+class GetAllUsersLoadingState extends AppStates {}
+
+class GetAllUsersSuccessState extends AppStates {}
+
+class GetAllUsersFailedState extends AppStates {}

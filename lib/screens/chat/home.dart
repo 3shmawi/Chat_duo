@@ -3,7 +3,6 @@ import 'package:chat_duo/resources/assets.dart';
 import 'package:chat_duo/resources/colors.dart';
 import 'package:chat_duo/resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
-import 'package:chat_duo/screens/chat/details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -103,13 +102,7 @@ class ChatHomeScreen extends StatelessWidget {
       body: ListView.builder(
         padding: const EdgeInsets.all(10),
         itemBuilder: (context, index) => GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const DetailsScreen(),
-              ),
-            );
-          },
+          onTap: () {},
           child: ListTile(),
           // child: const HomeChatCardItem(),
         ),
@@ -118,9 +111,11 @@ class ChatHomeScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         onPressed: () {
+          context.read<AppCtrl>().getAllUsers();
           showModalBottomSheet(
-              context: context,
-              builder: (context) => const NewChatModelSheet());
+            context: context,
+            builder: (context) => const NewChatModelSheet(),
+          );
         },
         child: const Icon(Icons.chat),
       ),
