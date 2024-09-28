@@ -110,6 +110,45 @@ class AppCtrl extends Cubit<AppStates> {
       return false;
     }
   }
+
+  //search and all users
+  bool isSearch = false;
+  final searchText = TextEditingController();
+
+  void toggleSearch() {
+    searchText.clear();
+    isSearch = !isSearch;
+    emit(ToggleSearchState());
+  }
+
+  List<UserModel> allUsers = [];
+  List<UserModel> filteredUsers = [];
+
+  void refreshAllUsers() {
+    allUsers = [];
+    getAllUsers();
+  }
+
+  void getAllUsers() {
+    if (allUsers.isNotEmpty) return;
+    emit(GetAllUsersLoadingState());
+    _database.collection('users').get().then((snapshot) {
+      allUsers =
+          snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      emit(GetAllUsersSuccessState());
+    }).catchError((error) {
+      AppToast.error("Error getting documents: $error");
+      emit(GetAllUsersErrorState());
+    });
+  }
+
+  void filterUsers() {
+    filteredUsers = allUsers
+        .where((user) =>
+            user.name.toLowerCase().contains(searchText.text.toLowerCase()))
+        .toList();
+    emit(GetAllUsersSuccessState());
+  }
 }
 
 abstract class AppStates {}
@@ -124,3 +163,11 @@ class AuthSuccessState extends AppStates {}
 class AuthErrorState extends AppStates {}
 
 class GetMyDataState extends AppStates {}
+
+class GetAllUsersLoadingState extends AppStates {}
+
+class GetAllUsersSuccessState extends AppStates {}
+
+class GetAllUsersErrorState extends AppStates {}
+
+class ToggleSearchState extends AppStates {}
