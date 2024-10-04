@@ -119,7 +119,8 @@ class _ChatItem extends StatelessWidget {
             ),
           ),
           child: Column(
-            crossAxisAlignment: isSender?CrossAxisAlignment.start,
+            crossAxisAlignment:
+                isSender ? CrossAxisAlignment.start : CrossAxisAlignment.end,
             children: [
               Text(
                 message,
