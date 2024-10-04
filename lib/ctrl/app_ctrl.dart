@@ -1,3 +1,5 @@
+import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/resources/shared/toast.dart';
 import 'package:chat_duo/services/local_strage.dart';
@@ -173,6 +175,75 @@ class AppCtrl extends Cubit<AppStates> {
             user.name.toLowerCase().contains(searchCtrl.text.toLowerCase()))
         .toList();
     emit(GetAllUsersSuccessState());
+  }
+
+  //message
+
+  final messageCtrl = TextEditingController();
+
+  void sendMessage({
+    required UserModel sender,
+    required UserModel receiver,
+  }) async {
+    if (messageCtrl.text.isEmpty) {
+      AppToast.info("Please enter a message");
+      return;
+    }
+    final id = DateTime.now().toIso8601String();
+    final message = MessageModel(
+      id: id,
+      message: messageCtrl.text,
+      createdAt: id,
+      sender: sender,
+      receiver: receiver,
+    );
+
+    //for sender
+    await _database
+        .collection("Mostafa_Users")
+        .doc(message.sender.id)
+        .collection("users")
+        .doc(message.receiver.id)
+        .collection("messages")
+        .doc(message.id)
+        .set(message.toJson());
+
+    messageCtrl.clear();
+
+    await _database
+        .collection("Mostafa_Users")
+        .doc(message.receiver.id)
+        .collection("users")
+        .doc(message.sender.id)
+        .collection("messages")
+        .doc(message.id)
+        .set(message.toJson());
+
+    await _database
+        .collection("Mostafa_Users")
+        .doc(message.sender.id)
+        .collection("users")
+        .doc(message.receiver.id)
+        .set(
+          ChatModel(
+            user: message.receiver,
+            lastMessage: message.message,
+            date: message.createdAt,
+          ).toJson(),
+        );
+
+    await _database
+        .collection("Mostafa_Users")
+        .doc(message.receiver.id)
+        .collection("users")
+        .doc(message.sender.id)
+        .set(
+          ChatModel(
+            user: message.sender,
+            lastMessage: message.message,
+            date: message.createdAt,
+          ).toJson(),
+        );
   }
 }
 
