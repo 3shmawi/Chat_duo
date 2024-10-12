@@ -37,7 +37,7 @@ class AppCtrl extends Cubit<AppStates> {
       emit(AuthSuccessState());
     }).catchError((error) {
       emit(AuthFailureState());
-      AppToast.error("The email or password is incorrect");
+      AppToast.error("The email or password is incorrect $error");
     });
   }
 
