@@ -1,6 +1,13 @@
+import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/resources/colors.dart';
+import 'package:chat_duo/resources/shared/toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
+
+import '../../app/functions.dart';
 
 class DetailsScreen extends StatelessWidget {
   const DetailsScreen(this.chat, {super.key});
@@ -9,6 +16,8 @@ class DetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ctrl = AppCtrl();
+    final sender = context.read<AppCtrl>().user;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
@@ -58,9 +67,28 @@ class DetailsScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemBuilder: (context, index) => _messageItem(
-                  "hello", index.toString(), index % 3 == 0, index % 3 == 1),
+            child: StreamBuilder<List<MessageModel>>(
+              stream: ctrl.getMessages(chat.user.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  final messages = snapshot.data;
+
+                  if (messages == null || messages.isEmpty) {
+                    return Center(child: Text("No messages yet"));
+                  }
+                  return ListView.builder(
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) => _messageItem(
+                        messages[index].message,
+                        messages[index].createdAt,
+                        messages[index].sender.id == ctrl.myId,
+                        index % 3 == 1),
+                  );
+                }
+                return Center(
+                  child: Lottie.asset("assets/json/loading.json", width: 150),
+                );
+              },
             ),
           ),
           Row(
@@ -68,20 +96,29 @@ class DetailsScreen extends StatelessWidget {
               const SizedBox(width: 5),
               Expanded(
                 child: TextField(
+                  controller: ctrl.messageCtrl,
                   decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      hintText: "Type a message",
-                      hintStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.grey)),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    hintText: "Type a message",
+                    hintStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  if (sender == null) {
+                    AppToast.info("Please login first");
+                  } else {
+                    ctrl.sendMessage(sender: sender, receiver: chat.user);
+                  }
+                },
                 icon: Icon(
                   Icons.send,
                   color: AppColors.primary,
@@ -110,7 +147,7 @@ class DetailsScreen extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment:
-                isSender ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -144,7 +181,7 @@ class DetailsScreen extends StatelessWidget {
               ),
               if (!isPreviousMessageIsMine)
                 Text(
-                  date,
+                  daysBetween(DateTime.parse(date)),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,

@@ -1,3 +1,4 @@
+import 'package:chat_duo/app/functions.dart';
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/resources/shared/navigation.dart';
@@ -214,7 +215,8 @@ class HomeChatCardItem extends StatelessWidget {
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Text(
-                              chat.date,
+                              daysBetween(DateTime.parse(chat.date)),
+                              maxLines: 1,
                               textAlign: TextAlign.right,
                               style: const TextStyle(
                                 fontSize: 14,

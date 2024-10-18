@@ -1,12 +1,15 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
+import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/resources/assets.dart';
 import 'package:chat_duo/resources/colors.dart';
 import 'package:chat_duo/resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 
 import '_widgets.dart';
+import 'details.dart';
 
 class ChatHomeScreen extends StatelessWidget {
   const ChatHomeScreen({super.key});
@@ -99,14 +102,30 @@ class ChatHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(10),
-        itemBuilder: (context, index) => GestureDetector(
-          onTap: () {},
-          child: ListTile(),
-          // child: const HomeChatCardItem(),
-        ),
-        itemCount: 10,
+      body: StreamBuilder<List<ChatModel>>(
+        stream: AppCtrl().getMyUsers(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.active) {
+            final users = snapshot.data;
+
+            if (users == null || users.isEmpty) {
+              return Center(child: Text("No users yet"));
+            }
+            return ListView.builder(
+                itemCount: users.length,
+                itemBuilder: (context, index) => InkWell(
+                    onTap: () {
+                      toPage(
+                        context,
+                        DetailsScreen(users[index]),
+                      );
+                    },
+                    child: HomeChatCardItem(users[index])));
+          }
+          return Center(
+            child: Lottie.asset("assets/json/loading.json", width: 150),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,

@@ -20,6 +20,7 @@ class AppCtrl extends Cubit<AppStates> {
 
   //data
   UserModel? user;
+  String? myId = CacheHelper.getData(key: "myId");
 
   //auth
   final _auth = FirebaseAuth.instance;
@@ -156,8 +157,13 @@ class AppCtrl extends Cubit<AppStates> {
     if (allUsers.isNotEmpty) return;
     emit(GetAllUsersLoadingState());
     _database.collection('users').get().then((snapshot) {
-      allUsers =
-          snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      allUsers.clear();
+      for (final user in snapshot.docs) {
+        final u = UserModel.fromJson(user.data());
+        if (u.id != myId) {
+          allUsers.add(u);
+        }
+      }
       emit(GetAllUsersSuccessState());
     }).catchError((error) {
       AppToast.error(error.message);
@@ -244,6 +250,33 @@ class AppCtrl extends Cubit<AppStates> {
             date: message.createdAt,
           ).toJson(),
         );
+  }
+
+  Stream<List<MessageModel>> getMessages(String receiverId) {
+    return _database
+        .collection('Mostafa_Users')
+        .doc(receiverId)
+        .collection('users')
+        .doc(myId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MessageModel.fromJson(doc.data()))
+            .toList())
+        .asBroadcastStream();
+  }
+
+  Stream<List<ChatModel>> getMyUsers() {
+    return _database
+        .collection('Mostafa_Users')
+        .doc(myId)
+        .collection('users')
+        .orderBy("date", descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ChatModel.fromJson(doc.data())).toList())
+        .asBroadcastStream();
   }
 }
 
