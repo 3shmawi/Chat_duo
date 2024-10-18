@@ -1,3 +1,5 @@
+import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
 import 'package:chat_duo/services/local_storage.dart';
@@ -10,15 +12,25 @@ class AppCtrl extends Cubit<AppStates> {
   AppCtrl() : super(AppInitialState());
 
   //data
+  String? myId = CacheHelper.getData(key: "myId");
   UserModel? user;
 
-  //auth
+  List<UserModel> allUsers = [];
+  List<UserModel> filteredUsers = [];
+
   final _auth = FirebaseAuth.instance;
   final _database = FirebaseFirestore.instance;
 
   final usernameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+
+  final searchText = TextEditingController();
+  final messageCtrl = TextEditingController();
+
+  bool isSearch = false;
+
+  //auth
 
   void login() {
     if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty) {
@@ -30,7 +42,9 @@ class AppCtrl extends Cubit<AppStates> {
         .signInWithEmailAndPassword(
             email: emailCtrl.text, password: passwordCtrl.text)
         .then((response) async {
-      user = await getUserData(response.user!.uid);
+      final user = await getUserData(response.user!.uid, true);
+      this.user = user;
+      myId = response.user!.uid;
       emailCtrl.clear();
       passwordCtrl.clear();
       CacheHelper.saveData(key: "myId", value: response.user!.uid);
@@ -54,6 +68,7 @@ class AppCtrl extends Cubit<AppStates> {
             email: emailCtrl.text, password: passwordCtrl.text)
         .then((response) async {
       await _createUser(response.user!.uid);
+      myId = response.user!.uid;
       usernameCtrl.clear();
       passwordCtrl.clear();
       emailCtrl.clear();
@@ -92,7 +107,7 @@ class AppCtrl extends Cubit<AppStates> {
         this.user = user;
         emit(GetMyDataState());
       }
-      return UserModel.fromJson(snapshot.data()!);
+      return user;
     }).catchError((error) {
       throw Exception('Error getting document: $error');
     });
@@ -102,6 +117,7 @@ class AppCtrl extends Cubit<AppStates> {
     try {
       await _auth.signOut();
       user = null;
+      myId = null;
       CacheHelper.removeData(key: "myId");
       AppToast.success("Logging out user successfully");
       return true;
@@ -112,8 +128,6 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   //search and all users
-  bool isSearch = false;
-  final searchText = TextEditingController();
 
   void toggleSearch() {
     searchText.clear();
@@ -121,11 +135,8 @@ class AppCtrl extends Cubit<AppStates> {
     emit(ToggleSearchState());
   }
 
-  List<UserModel> allUsers = [];
-  List<UserModel> filteredUsers = [];
-
   void refreshAllUsers() {
-    allUsers = [];
+    allUsers.clear();
     getAllUsers();
   }
 
@@ -133,8 +144,13 @@ class AppCtrl extends Cubit<AppStates> {
     if (allUsers.isNotEmpty) return;
     emit(GetAllUsersLoadingState());
     _database.collection('users').get().then((snapshot) {
-      allUsers =
-          snapshot.docs.map((doc) => UserModel.fromJson(doc.data())).toList();
+      allUsers.clear();
+      for (final user in snapshot.docs) {
+        if (user.id == myId) {
+          continue;
+        }
+        allUsers.add(UserModel.fromJson(user.data()));
+      }
       emit(GetAllUsersSuccessState());
     }).catchError((error) {
       AppToast.error("Error getting documents: $error");
@@ -148,6 +164,96 @@ class AppCtrl extends Cubit<AppStates> {
             user.name.toLowerCase().contains(searchText.text.toLowerCase()))
         .toList();
     emit(GetAllUsersSuccessState());
+  }
+
+  //streams
+  Stream<List<ChatModel>> getMyUsers() {
+    return _database
+        .collection("my_users")
+        .doc(myId)
+        .collection("chats")
+        .orderBy("date", descending: true)
+        .snapshots()
+        .map((response) => response.docs
+            .map((user) => ChatModel.fromJson(user.data()))
+            .toList());
+  }
+
+  void sendMessage(UserModel receiver, UserModel sender) async {
+    if (messageCtrl.text.isEmpty) {
+      AppToast.error("Please enter a message");
+      return;
+    }
+
+    final newId = DateTime.now().toIso8601String();
+    final newMessage = MessageModel(
+      id: newId,
+      message: messageCtrl.text,
+      createdAt: newId,
+      updatedAt: newId,
+      senderId: sender.id,
+      receiverId: receiver.id,
+      imgUrl: [],
+    );
+
+    await _database
+        .collection("my_users")
+        .doc(newMessage.senderId)
+        .collection("chats")
+        .doc(newMessage.receiverId)
+        .collection("messages")
+        .doc(newMessage.id)
+        .set(newMessage.toJson());
+    messageCtrl.clear();
+
+    await _database
+        .collection("my_users")
+        .doc(newMessage.receiverId)
+        .collection("chats")
+        .doc(newMessage.senderId)
+        .collection("messages")
+        .doc(newMessage.id)
+        .set(newMessage.toJson());
+
+    await _database
+        .collection("my_users")
+        .doc(newMessage.receiverId)
+        .collection("chats")
+        .doc(newMessage.senderId)
+        .set(ChatModel(
+          lastMessage: newMessage.message,
+          date: newMessage.createdAt,
+          user: sender,
+          isRead: false,
+          isActive: true,
+        ).toJson());
+
+    await _database
+        .collection("my_users")
+        .doc(newMessage.senderId)
+        .collection("chats")
+        .doc(newMessage.receiverId)
+        .set(ChatModel(
+          lastMessage: newMessage.message,
+          date: newMessage.createdAt,
+          user: receiver,
+          isRead: false,
+          isActive: true,
+        ).toJson());
+  }
+
+  Stream<List<MessageModel>> getMessages(String receiverId) {
+    return _database
+        .collection("my_users")
+        .doc(myId)
+        .collection("chats")
+        .doc(receiverId)
+        .collection("messages")
+        .orderBy("created_at", descending: false)
+        .snapshots()
+        .map((response) => response.docs
+            .map((doc) => MessageModel.fromJson(doc.data()))
+            .toList());
   }
 }
 
@@ -164,6 +270,7 @@ class AuthErrorState extends AppStates {}
 
 class GetMyDataState extends AppStates {}
 
+//
 class GetAllUsersLoadingState extends AppStates {}
 
 class GetAllUsersSuccessState extends AppStates {}

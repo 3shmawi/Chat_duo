@@ -5,6 +5,7 @@ import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/_resources/shared/use_case.dart';
 import 'package:chat_duo/screens/auth/login.dart';
 import 'package:chat_duo/screens/layout/details_view.dart';
+import 'package:chat_duo/screens/layout/profile_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -20,6 +21,12 @@ class LayoutView extends StatelessWidget {
         title: const Text('Chat Duo'),
         actions: [
           IconButton(
+            icon: const Icon(CupertinoIcons.profile_circled),
+            onPressed: () {
+              toPage(context, ProfileView(AppCtrl().myId!));
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               context.read<AppCtrl>().logout().then((isLoggedOut) {
@@ -31,25 +38,22 @@ class LayoutView extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemBuilder: (context, index) => ChatItem(
-          ChatModel(
-            lastMessage: "lastMessage",
-            date: "date",
-            user: UserModel(
-              id: "id",
-              name: "Mohamed Ashmawi",
-              email: "email",
-              avatar: "avatar",
-              createdAt: "createdAt",
-              updatedAt: "updatedAt",
-            ),
-            isRead: true,
-            isActive: true,
-          ),
-        ),
-        itemCount: 10,
-      ),
+      body: StreamBuilder<List<ChatModel>>(
+          stream: AppCtrl().getMyUsers(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.active) {
+              final users = snapshot.data;
+              if (users == null || users.isEmpty) {
+                return const UseCaseWidget(UseCases.empty);
+              }
+
+              return ListView.builder(
+                itemBuilder: (context, index) => ChatItem(users[index]),
+                itemCount: users.length,
+              );
+            }
+            return const UseCaseWidget(UseCases.loading);
+          }),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(

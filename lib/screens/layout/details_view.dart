@@ -1,6 +1,12 @@
+import 'package:chat_duo/ctrl/app_ctrl.dart';
+import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
+import 'package:chat_duo/screens/_resources/shared/navigation.dart';
+import 'package:chat_duo/screens/_resources/shared/use_case.dart';
+import 'package:chat_duo/screens/layout/profile_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class DetailsView extends StatelessWidget {
   const DetailsView(this.receiver, {super.key});
@@ -9,6 +15,7 @@ class DetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sender = context.read<AppCtrl>().user;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -23,9 +30,12 @@ class DetailsView extends StatelessWidget {
                 Icons.arrow_back_ios_new,
               ),
             ),
-            CircleAvatar(
-              radius: 25,
-              backgroundImage: NetworkImage(receiver.avatar),
+            GestureDetector(
+              onTap: () => toPage(context, ProfileView(receiver.id)),
+              child: CircleAvatar(
+                radius: 25,
+                backgroundImage: NetworkImage(receiver.avatar),
+              ),
             ),
             const SizedBox(width: 8),
             Text(
@@ -39,18 +49,32 @@ class DetailsView extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemBuilder: (context, index) => _ChatItem(
-                message: "message",
-                date: "now",
-                isSender: index % 4 == 0,
-              ),
-            ),
+            child: StreamBuilder<List<MessageModel>>(
+                stream: AppCtrl().getMessages(receiver.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.active) {
+                    final messages = snapshot.data;
+                    if (messages == null || messages.isEmpty) {
+                      return const UseCaseWidget(UseCases.empty);
+                    }
+
+                    return ListView.builder(
+                      itemBuilder: (context, index) => _ChatItem(
+                        message: messages[index].message,
+                        date: messages[index].updatedAt,
+                        isSender: receiver.id == messages[index].receiverId,
+                      ),
+                      itemCount: messages.length,
+                    );
+                  }
+                  return const UseCaseWidget(UseCases.loading);
+                }),
           ),
           Row(
             children: [
               Expanded(
                 child: TextField(
+                  controller: context.read<AppCtrl>().messageCtrl,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -72,7 +96,10 @@ class DetailsView extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  print(sender);
+                  context.read<AppCtrl>().sendMessage(receiver, sender!);
+                },
                 icon: const Icon(
                   Icons.send,
                   color: Colors.red,
