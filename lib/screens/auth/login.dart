@@ -2,6 +2,7 @@ import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/_resources/colors.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/signup.dart';
+import 'package:chat_duo/screens/layout/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,7 +14,7 @@ class LoginScreen extends StatelessWidget {
     return BlocConsumer<AppCtrl, AppStates>(
       listener: (context, state) {
         if (state is AuthSuccessState) {
-          // toAndFinish(context, )
+          toAndFinish(context, const HomeView());
         }
       },
       builder: (context, state) {
@@ -37,7 +38,7 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 TextField(
                   controller: cubit.emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Username'),
+                  decoration: const InputDecoration(labelText: 'Email Address'),
                 ),
                 const SizedBox(height: 20.0),
                 TextField(

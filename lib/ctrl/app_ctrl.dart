@@ -1,15 +1,18 @@
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
+import 'package:chat_duo/services/local_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+//
 class AppCtrl extends Cubit<AppStates> {
   AppCtrl() : super(AppInitialState());
 
   //data
   UserModel? myData;
+  String? myId = CacheHelper.getData(key: "uid");
 
   final _auth = FirebaseAuth.instance;
   final _database = FirebaseFirestore.instance;
@@ -32,12 +35,12 @@ class AppCtrl extends Cubit<AppStates> {
         .then((response) async {
       emailCtrl.clear();
       passwordCtrl.clear();
-      await getMyData(response.user!.uid);
+      CacheHelper.saveData(key: "uid", value: response.user!.uid);
       AppToast.success("You have successfully signed in");
-      emit(AuthSuccessState());
+      await getMyData(response.user!.uid);
     }).catchError((error) {
       emit(AuthFailureState());
-      AppToast.error("The email or password is incorrect $error");
+      AppToast.error("The email or password is incorrect\n\n$error");
     });
   }
 
@@ -55,6 +58,8 @@ class AppCtrl extends Cubit<AppStates> {
             email: emailCtrl.text, password: passwordCtrl.text)
         .then((response) async {
       await _createUser(response.user!.uid);
+      CacheHelper.saveData(key: "uid", value: response.user!.uid);
+
       AppToast.success("You have successfully registered");
       emit(AuthSuccessState());
     }).catchError((error) {
@@ -83,7 +88,9 @@ class AppCtrl extends Cubit<AppStates> {
   Future<bool> logout() async {
     try {
       await _auth.signOut();
+      CacheHelper.removeData(key: "uid");
       myData = null;
+      AppToast.success("You have been logged out");
       return true;
     } catch (error) {
       AppToast.error("An error occurred ${error.toString()}");
@@ -94,6 +101,7 @@ class AppCtrl extends Cubit<AppStates> {
   //get user data
   Future<void> getMyData(String myId) async {
     myData = await getUserData(myId);
+    emit(AuthSuccessState());
   }
 
   Future<UserModel> getUserData(String uid) async {

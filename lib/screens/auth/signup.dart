@@ -2,6 +2,7 @@ import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/_resources/colors.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
+import 'package:chat_duo/screens/layout/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,7 +13,9 @@ class SignupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<AppCtrl, AppStates>(
       listener: (context, state) {
-        if (state is AuthSuccessState) {}
+        if (state is AuthSuccessState) {
+          toAndFinish(context, const HomeView());
+        }
       },
       builder: (context, state) {
         final cubit = context.read<AppCtrl>();

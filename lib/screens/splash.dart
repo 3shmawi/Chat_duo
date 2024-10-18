@@ -1,5 +1,7 @@
+import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
+import 'package:chat_duo/screens/layout/home_view.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -13,9 +15,19 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2)).then(
-      (_) => toAndReplace(context, const LoginScreen()),
-    );
+    _start();
+  }
+
+  _start() async {
+    final ctrl = AppCtrl();
+    if (ctrl.myId != null) {
+      await ctrl.getMyData(ctrl.myId!);
+      toAndReplace(context, const HomeView());
+    } else {
+      Future.delayed(const Duration(seconds: 2)).then(
+        (_) => toAndReplace(context, const LoginScreen()),
+      );
+    }
   }
 
   @override
