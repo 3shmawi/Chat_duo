@@ -13,6 +13,9 @@ class AppCtrl extends Cubit<AppStates> {
   //data
   UserModel? myData;
   String? myId = CacheHelper.getData(key: "uid");
+  List<UserModel> allUsers = [];
+  List<UserModel> selectedUser = [];
+  bool isGroupEnable = false;
 
   final _auth = FirebaseAuth.instance;
   final _database = FirebaseFirestore.instance;
@@ -109,6 +112,42 @@ class AppCtrl extends Cubit<AppStates> {
       return UserModel.fromJson(snapshot.data()!);
     });
   }
+
+  //all users
+  void refreshAllUsers() async {
+    allUsers.clear();
+    getAllUsers();
+  }
+
+  void getAllUsers() {
+    if (allUsers.isNotEmpty) return;
+    emit(GetUsersLoadingState());
+    _database.collection('users').get().then((snapshot) {
+      allUsers.clear(); // clear previous data first
+      for (final user in snapshot.docs) {
+        if (user.id == myId) continue; // exclude myself from the list
+        allUsers.add(UserModel.fromJson(user.data()));
+      }
+      emit(GetUsersSuccessState());
+    }).catchError((error) {
+      emit(GetUsersFailureState(error: error.toString()));
+      AppToast.error("An error occurred ${error.toString()}");
+    });
+  }
+
+  void toggleCheckBox() {
+    isGroupEnable = !isGroupEnable;
+    emit(AppToggleState());
+  }
+
+  void addOrRemoveUser(UserModel user) {
+    if (selectedUser.contains(user)) {
+      selectedUser.remove(user);
+    } else {
+      selectedUser.add(user);
+    }
+    emit(AppToggleState());
+  }
 }
 
 abstract class AppStates {}
@@ -121,3 +160,17 @@ class AuthLoadingState extends AppStates {}
 class AuthSuccessState extends AppStates {}
 
 class AuthFailureState extends AppStates {}
+
+//get all users
+class GetUsersLoadingState extends AppStates {}
+
+class GetUsersFailureState extends AppStates {
+  final String error;
+
+  GetUsersFailureState({this.error = ''});
+}
+
+class GetUsersSuccessState extends AppStates {}
+
+//logic
+class AppToggleState extends AppStates {}

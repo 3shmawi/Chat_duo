@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AppCtrl(),
+      create: (context) => AppCtrl()..getAllUsers(),
       child: MaterialApp(
         theme: AppTheme.light,
         themeMode: ThemeMode.light,
