@@ -1,3 +1,4 @@
+import 'package:chat_duo/app/theme.dart';
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/screens/splash.dart';
 import 'package:flutter/material.dart';
@@ -10,26 +11,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => AppCtrl(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: Colors.red,
-          colorScheme: const ColorScheme.light(
-            primary: Colors.red,
-          ),
-          primarySwatch: Colors.blue,
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              minimumSize: const Size(300, 50),
-            ),
-          ),
-        ),
-        home: const SplashScreen(),
+      child: BlocBuilder<AppCtrl, AppStates>(
+        buildWhen: (_, current) => current is DarkModeToggledState,
+        builder: (context, state) {
+          final isDark = context.read<AppCtrl>().isDarkMode;
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }

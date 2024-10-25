@@ -29,6 +29,20 @@ class AppCtrl extends Cubit<AppStates> {
   final messageCtrl = TextEditingController();
 
   bool isSearch = false;
+  bool isPassword = true;
+  bool isDarkMode = CacheHelper.getData(key: "isDark") ?? false;
+
+  //logic
+  void togglePasswordVisibility() {
+    isPassword = !isPassword;
+    emit(PasswordVisibilityToggledState());
+  }
+
+  void toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    CacheHelper.saveData(key: "isDark", value: isDarkMode);
+    emit(DarkModeToggledState());
+  }
 
   //auth
 
@@ -225,7 +239,6 @@ class AppCtrl extends Cubit<AppStates> {
           date: newMessage.createdAt,
           user: sender,
           isRead: false,
-          isActive: true,
         ).toJson());
 
     await _database
@@ -238,8 +251,34 @@ class AppCtrl extends Cubit<AppStates> {
           date: newMessage.createdAt,
           user: receiver,
           isRead: false,
-          isActive: true,
         ).toJson());
+
+    await _database
+        .collection('my_users')
+        .doc(newMessage.senderId)
+        .update({'isActive': true});
+  }
+
+  void updateReadingState(String receiverId) async {
+    await _database
+        .collection("my_users")
+        .doc(myId)
+        .collection("chats")
+        .doc(receiverId)
+        .update({
+      'isRead': true,
+    });
+  }
+
+  void updateActiveState(String receiverId, bool state) async {
+    await _database
+        .collection("my_users")
+        .doc(myId)
+        .collection("chats")
+        .doc(receiverId)
+        .update({
+      'isActive': state,
+    });
   }
 
   Stream<List<MessageModel>> getMessages(String receiverId) {
@@ -255,11 +294,31 @@ class AppCtrl extends Cubit<AppStates> {
             .map((doc) => MessageModel.fromJson(doc.data()))
             .toList());
   }
+
+  //active
+  Stream<bool> isUserActive(String id) {
+    return _database
+        .collection('my_users')
+        .doc(id)
+        .snapshots()
+        .map((snapshot) => snapshot.data()!['isActive']);
+  }
+
+  void setUserActive(bool state) async {
+    await _database
+        .collection('my_users')
+        .doc(myId)
+        .update({'isActive': state});
+  }
 }
 
 abstract class AppStates {}
 
 class AppInitialState extends AppStates {}
+
+class PasswordVisibilityToggledState extends AppStates {}
+
+class DarkModeToggledState extends AppStates {}
 
 //auth
 class AuthLoadingState extends AppStates {}

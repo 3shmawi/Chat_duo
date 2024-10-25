@@ -8,6 +8,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../app/functions.dart';
+
 class DetailsView extends StatelessWidget {
   const DetailsView(this.receiver, {super.key});
 
@@ -157,7 +159,7 @@ class _ChatItem extends StatelessWidget {
                 ),
               ),
               Text(
-                date,
+                daysBetween(date),
                 style: TextStyle(
                   color: isSender ? Colors.white70 : Colors.black45,
                   fontSize: 12,

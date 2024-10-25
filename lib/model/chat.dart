@@ -5,14 +5,14 @@ class ChatModel {
   final String date;
   final UserModel user;
   final bool isRead;
-  final bool isActive;
+  // final bool isActive;
 
   ChatModel({
     required this.lastMessage,
     required this.date,
     required this.user,
     required this.isRead,
-    required this.isActive,
+    // required this.isActive,
   });
 
   Map<String, dynamic> toJson() {
@@ -21,7 +21,7 @@ class ChatModel {
       'date': date,
       'user': user.toJson(),
       'isRead': isRead,
-      'isActive': isActive,
+      // 'isActive': isActive,
     };
   }
 
@@ -31,7 +31,7 @@ class ChatModel {
       date: json['date'],
       user: UserModel.fromJson(json['user']),
       isRead: json['isRead'],
-      isActive: json['isActive'],
+      // isActive: json['isActive'],
     );
   }
 
@@ -47,7 +47,7 @@ class ChatModel {
       date: date ?? this.date,
       user: user ?? this.user,
       isRead: isRead ?? this.isRead,
-      isActive: isActive ?? this.isActive,
+      // isActive: isActive ?? this.isActive,
     );
   }
 }

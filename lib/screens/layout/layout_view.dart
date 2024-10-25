@@ -1,3 +1,4 @@
+import 'package:chat_duo/app/functions.dart';
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/model/user.dart';
@@ -10,16 +11,70 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class LayoutView extends StatelessWidget {
+class LayoutView extends StatefulWidget {
   const LayoutView({super.key});
+
+  @override
+  State<LayoutView> createState() => _LayoutViewState();
+}
+
+class _LayoutViewState extends State<LayoutView> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppCtrl().setUserActive(true);
+  }
+
+  @override
+  void dispose() {
+    AppCtrl().setUserActive(false);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Listening to app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppCtrl().setUserActive(true);
+    } else if (state == AppLifecycleState.paused) {
+      AppCtrl().setUserActive(false);
+    } else if (state == AppLifecycleState.detached) {
+      AppCtrl().setUserActive(true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.red,
-        title: const Text('Chat Duo'),
+        leadingWidth: 30,
+        title: const Text(
+          'Chat Duo',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
+          BlocBuilder<AppCtrl, AppStates>(
+            buildWhen: (_, current) => current is DarkModeToggledState,
+            builder: (context, state) {
+              final ctrl = context.read<AppCtrl>();
+              return IconButton(
+                icon: Icon(
+                  ctrl.isDarkMode
+                      ? CupertinoIcons.lightbulb_fill
+                      : CupertinoIcons.lightbulb_slash_fill,
+                  color: ctrl.isDarkMode ? Colors.yellowAccent : Colors.black,
+                ),
+                onPressed: () {
+                  ctrl.toggleDarkMode();
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(CupertinoIcons.profile_circled),
             onPressed: () {
@@ -29,11 +84,53 @@ class LayoutView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              context.read<AppCtrl>().logout().then((isLoggedOut) {
-                if (isLoggedOut) {
-                  toAndFinish(context, const LoginScreen());
-                }
-              });
+              showCupertinoDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text(
+                        'Logout',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      content: const Text('Are you sure you want to logout?'),
+                      actions: <Widget>[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  context
+                                      .read<AppCtrl>()
+                                      .logout()
+                                      .then((isLoggedOut) {
+                                    if (isLoggedOut) {
+                                      toAndFinish(context, const LoginScreen());
+                                    }
+                                  });
+                                },
+                                child: const Text('Logout'),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  });
             },
           ),
         ],
@@ -75,7 +172,10 @@ class ChatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => toPage(context, DetailsView(chat.user)),
+      onTap: () {
+        AppCtrl().updateReadingState(chat.user.id);
+        toPage(context, DetailsView(chat.user));
+      },
       child: Container(
         padding: const EdgeInsets.all(10),
         margin: const EdgeInsets.all(10),
@@ -118,11 +218,29 @@ class ChatItem extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 9,
                     backgroundColor: Colors.white,
-                    child: CircleAvatar(
-                      radius: 7.5,
-                      backgroundColor:
-                          !chat.isActive ? Colors.green : Colors.grey,
-                    ),
+                    child: StreamBuilder<bool>(
+                        stream: AppCtrl().isUserActive(chat.user.id),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.active) {
+                            final isActive = snapshot.data;
+                            if (isActive == null) {
+                              return const CircleAvatar(
+                                radius: 7.5,
+                                backgroundColor: Colors.grey,
+                              );
+                            }
+                            return CircleAvatar(
+                              radius: 7.5,
+                              backgroundColor:
+                                  isActive ? Colors.green : Colors.grey,
+                            );
+                          }
+                          return const CircleAvatar(
+                            radius: 7.5,
+                            backgroundColor: Colors.grey,
+                          );
+                        }),
                   ),
                 )
               ],
@@ -164,13 +282,20 @@ class ChatItem extends StatelessWidget {
                           chat.lastMessage,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: !chat.isRead ? Colors.grey.shade700 : null,
-                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text(chat.date),
+                      if (!chat.isRead)
+                        const CircleAvatar(
+                          radius: 6,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 5,
+                            backgroundColor: Colors.red,
+                          ),
+                        ),
+                      const SizedBox(width: 10),
+                      Text(chat.date.isEmpty ? "" : daysBetween(chat.date)),
                     ],
                   ),
                 ],
@@ -248,7 +373,6 @@ class BottomModelSheet extends StatelessWidget {
             date: "",
             user: allUsers[index],
             isRead: false,
-            isActive: false,
           ),
         ),
         itemCount: allUsers.length,
