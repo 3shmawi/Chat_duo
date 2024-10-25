@@ -1,4 +1,5 @@
 import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/group.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/resources/shared/toast.dart';
@@ -189,7 +190,9 @@ class AppCtrl extends Cubit<AppStates> {
 
   void sendMessage({
     required UserModel sender,
-    required UserModel receiver,
+    UserModel? receiver,
+    bool isGroup = false,
+    String? groupId,
   }) async {
     if (messageCtrl.text.isEmpty) {
       AppToast.info("Please enter a message");
@@ -202,14 +205,31 @@ class AppCtrl extends Cubit<AppStates> {
       createdAt: id,
       sender: sender,
       receiver: receiver,
+      isGroup: isGroup,
     );
 
+    if (isGroup) {
+      await _database
+          .collection("Mostafa_Groups")
+          .doc(groupId)
+          .collection("messages")
+          .doc(message.id)
+          .set(message.toJson());
+
+      await _database.collection("Mostafa_Groups").doc(groupId).update(
+            GroupModel(
+              lastMessage: message.message,
+              date: message.createdAt,
+            ).toJson(),
+          );
+      return;
+    }
     //for sender
     await _database
         .collection("Mostafa_Users")
         .doc(message.sender.id)
         .collection("users")
-        .doc(message.receiver.id)
+        .doc(message.receiver!.id)
         .collection("messages")
         .doc(message.id)
         .set(message.toJson());
@@ -218,7 +238,7 @@ class AppCtrl extends Cubit<AppStates> {
 
     await _database
         .collection("Mostafa_Users")
-        .doc(message.receiver.id)
+        .doc(message.receiver!.id)
         .collection("users")
         .doc(message.sender.id)
         .collection("messages")
@@ -229,10 +249,10 @@ class AppCtrl extends Cubit<AppStates> {
         .collection("Mostafa_Users")
         .doc(message.sender.id)
         .collection("users")
-        .doc(message.receiver.id)
+        .doc(message.receiver!.id)
         .set(
           ChatModel(
-            user: message.receiver,
+            user: message.receiver!,
             lastMessage: message.message,
             date: message.createdAt,
           ).toJson(),
@@ -240,7 +260,7 @@ class AppCtrl extends Cubit<AppStates> {
 
     await _database
         .collection("Mostafa_Users")
-        .doc(message.receiver.id)
+        .doc(message.receiver!.id)
         .collection("users")
         .doc(message.sender.id)
         .set(
@@ -267,6 +287,19 @@ class AppCtrl extends Cubit<AppStates> {
         .asBroadcastStream();
   }
 
+  Stream<List<MessageModel>> getGroupMessages(String groupId) {
+    return _database
+        .collection('Mostafa_Groups')
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MessageModel.fromJson(doc.data()))
+            .toList())
+        .asBroadcastStream();
+  }
+
   Stream<List<ChatModel>> getMyUsers() {
     return _database
         .collection('Mostafa_Users')
@@ -277,6 +310,51 @@ class AppCtrl extends Cubit<AppStates> {
         .map((snapshot) =>
             snapshot.docs.map((doc) => ChatModel.fromJson(doc.data())).toList())
         .asBroadcastStream();
+  }
+
+  Stream<List<GroupModel>> getMyGroups() {
+    return _database
+        .collection('Mostafa_Groups')
+        .orderBy("date", descending: true)
+        .where("usersIds", arrayContains: myId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => GroupModel.fromJson(doc.data()))
+            .toList())
+        .asBroadcastStream();
+  }
+
+  final groupNameCtrl = TextEditingController();
+
+  List<String> groupUsersIds = [];
+
+  void addOrRemoveGroupUser(ChatModel user) {
+    if (groupUsersIds.contains(user.user.id)) {
+      groupUsersIds.remove(user.user.id);
+    } else {
+      groupUsersIds.add(user.user.id);
+    }
+    emit(AddGroupUserState());
+  }
+
+  bool isGroupUserSelected(ChatModel user) {
+    return groupUsersIds.contains(user.user.id);
+  }
+
+  void createGroup() async {
+    if (groupUsersIds.isEmpty || groupNameCtrl.text.isEmpty) {
+      AppToast.info("Please select at least one user and enter a group name");
+      return;
+    }
+    final groupId = DateTime.now().toIso8601String();
+
+    await _database.collection("Mostafa_Groups").doc(groupId).set(
+          GroupModel(
+            lastMessage: "This group has been created",
+            date: groupId,
+            groupName: groupNameCtrl.text,
+          ).toJson(),
+        );
   }
 }
 
@@ -305,3 +383,6 @@ class GetAllUsersLoadingState extends AppStates {}
 class GetAllUsersSuccessState extends AppStates {}
 
 class GetAllUsersFailedState extends AppStates {}
+
+//groups
+class AddGroupUserState extends AppStates {}

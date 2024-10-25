@@ -1,5 +1,4 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
-import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/resources/colors.dart';
 import 'package:chat_duo/resources/shared/toast.dart';
@@ -10,9 +9,10 @@ import 'package:lottie/lottie.dart';
 import '../../app/functions.dart';
 
 class DetailsScreen extends StatelessWidget {
-  const DetailsScreen(this.chat, {super.key});
+  const DetailsScreen(this.chat, {required this.isGroup, super.key});
 
-  final ChatModel chat;
+  final dynamic chat;
+  final bool isGroup;
 
   @override
   Widget build(BuildContext context) {

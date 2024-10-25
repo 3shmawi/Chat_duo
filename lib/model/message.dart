@@ -5,14 +5,16 @@ class MessageModel {
   final String message;
   final String createdAt;
   final UserModel sender;
-  final UserModel receiver;
+  final UserModel? receiver;
+  final bool isGroup;
 
   MessageModel({
     required this.id,
     required this.message,
     required this.createdAt,
     required this.sender,
-    required this.receiver,
+    this.receiver,
+    required this.isGroup,
   });
 
   Map<String, dynamic> toJson() {
@@ -21,7 +23,8 @@ class MessageModel {
       'message': message,
       'createdAt': createdAt,
       'sender': sender.toJson(),
-      'receiver': receiver.toJson(),
+      'receiver': receiver?.toJson(),
+      'isGroup': isGroup,
     };
   }
 
@@ -32,6 +35,7 @@ class MessageModel {
       createdAt: json['createdAt'],
       sender: UserModel.fromJson(json['sender']),
       receiver: UserModel.fromJson(json['receiver']),
+      isGroup: json['isGroup'],
     );
   }
 }
