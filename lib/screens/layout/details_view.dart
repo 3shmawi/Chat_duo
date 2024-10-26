@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/functions.dart';
+import 'display_image.dart';
 
 class DetailsView extends StatelessWidget {
   const DetailsView(this.receiver, {super.key});
@@ -62,8 +63,7 @@ class DetailsView extends StatelessWidget {
 
                     return ListView.builder(
                       itemBuilder: (context, index) => _ChatItem(
-                        message: messages[index].message,
-                        date: messages[index].updatedAt,
+                        message: messages[index],
                         isSender: receiver.id == messages[index].receiverId,
                       ),
                       itemCount: messages.length,
@@ -72,42 +72,95 @@ class DetailsView extends StatelessWidget {
                   return const UseCaseWidget(UseCases.loading);
                 }),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: context.read<AppCtrl>().messageCtrl,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 15),
-                    hintText: 'Type a message...',
-                    hintStyle: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey.shade400,
-                    ),
-                    suffixIcon: IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        CupertinoIcons.photo,
-                        color: Colors.grey,
+          BlocBuilder<AppCtrl, AppStates>(
+            builder: (context, state) {
+              final cubit = context.read<AppCtrl>();
+              return Column(
+                children: [
+                  if (cubit.selectedImages.isNotEmpty)
+                    SizedBox(
+                      height: 100,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          return Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              SizedBox(
+                                height: 100,
+                                width: 150,
+                                child: Card(
+                                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                                  child: Image.file(
+                                    cubit.selectedImages[index],
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              CircleAvatar(
+                                backgroundColor: Colors.black26,
+                                child: IconButton(
+                                  onPressed: () {
+                                    cubit.removeSelectedImage(index);
+                                  },
+                                  icon: const Icon(
+                                    Icons.close,
+                                  ),
+                                ),
+                              )
+                            ],
+                          );
+                        },
+                        itemCount: cubit.selectedImages.length,
                       ),
                     ),
+                  if (state is UploadImageLoadingState)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 5.0),
+                      child: LinearProgressIndicator(),
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: context.read<AppCtrl>().messageCtrl,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 15),
+                            hintText: 'Type a message...',
+                            hintStyle: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey.shade400,
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                cubit.selectImages();
+                              },
+                              icon: const Icon(
+                                CupertinoIcons.photo,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          cubit.sendMessage(receiver, sender!);
+                        },
+                        icon: const Icon(
+                          Icons.send,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  print(sender);
-                  context.read<AppCtrl>().sendMessage(receiver, sender!);
-                },
-                icon: const Icon(
-                  Icons.send,
-                  color: Colors.red,
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -118,56 +171,99 @@ class DetailsView extends StatelessWidget {
 class _ChatItem extends StatelessWidget {
   const _ChatItem({
     required this.message,
-    required this.date,
     required this.isSender,
   });
 
-  final String message;
-  final String date;
+  final MessageModel message;
   final bool isSender;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment:
-          isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          margin: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 5,
-          ),
-          decoration: BoxDecoration(
-            color: isSender ? Colors.red : Colors.grey.shade400,
-            borderRadius: BorderRadius.only(
-              topLeft: isSender ? const Radius.circular(10) : Radius.zero,
-              topRight: !isSender ? const Radius.circular(10) : Radius.zero,
-              bottomLeft: isSender ? Radius.zero : const Radius.circular(10),
-              bottomRight: !isSender ? Radius.zero : const Radius.circular(10),
-            ),
-          ),
+        if (isSender) const Expanded(child: SizedBox()),
+        Expanded(
+          flex: 3,
           child: Column(
-            crossAxisAlignment:
-                isSender ? CrossAxisAlignment.start : CrossAxisAlignment.end,
             children: [
-              Text(
-                message,
-                style: TextStyle(
-                  color: isSender ? Colors.white : Colors.black,
-                  fontSize: 16,
+              if (message.imgUrl.isNotEmpty)
+                Wrap(
+                  children: List.generate(
+                    message.imgUrl.length,
+                    (index) => GestureDetector(
+                      onTap: () {
+                        toPage(
+                          context,
+                          ImageViewerPage(
+                            imagePaths: message.imgUrl,
+                            initialIndex: index,
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        height: 100,
+                        width: 150,
+                        child: Card(
+                          clipBehavior: Clip.antiAliasWithSaveLayer,
+                          child: Image.network(
+                            message.imgUrl[index],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                daysBetween(date),
-                style: TextStyle(
-                  color: isSender ? Colors.white70 : Colors.black45,
-                  fontSize: 12,
+              Align(
+                alignment: isSender ? Alignment.topRight : Alignment.topLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSender ? Colors.red : Colors.grey.shade400,
+                    borderRadius: BorderRadius.only(
+                      topLeft:
+                          isSender ? const Radius.circular(10) : Radius.zero,
+                      topRight:
+                          !isSender ? const Radius.circular(10) : Radius.zero,
+                      bottomLeft:
+                          isSender ? Radius.zero : const Radius.circular(10),
+                      bottomRight:
+                          !isSender ? Radius.zero : const Radius.circular(10),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: isSender
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.end,
+                    children: [
+                      if (message.message.isNotEmpty)
+                        Text(
+                          message.message,
+                          style: TextStyle(
+                            color: isSender ? Colors.white : Colors.black,
+                            fontSize: 16,
+                          ),
+                        ),
+                      Text(
+                        daysBetween(message.createdAt),
+                        style: TextStyle(
+                          color: isSender ? Colors.white70 : Colors.black45,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+        if (!isSender) const Expanded(child: SizedBox()),
       ],
     );
   }

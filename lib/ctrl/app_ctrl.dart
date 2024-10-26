@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
 import 'package:chat_duo/services/local_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -194,12 +198,20 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   void sendMessage(UserModel receiver, UserModel sender) async {
-    if (messageCtrl.text.isEmpty) {
-      AppToast.error("Please enter a message");
+    if (messageCtrl.text.isEmpty && selectedImages.isEmpty) {
+      AppToast.error("Please enter a message or select an image");
       return;
     }
 
     final newId = DateTime.now().toIso8601String();
+    if (selectedImages.isNotEmpty) {
+      imagesUrl.clear();
+      emit(UploadImageLoadingState());
+      await _uploadImages();
+      selectedImages.clear();
+
+      emit(UploadImageSuccessState());
+    }
     final newMessage = MessageModel(
       id: newId,
       message: messageCtrl.text,
@@ -207,8 +219,9 @@ class AppCtrl extends Cubit<AppStates> {
       updatedAt: newId,
       senderId: sender.id,
       receiverId: receiver.id,
-      imgUrl: [],
+      imgUrl: imagesUrl,
     );
+    messageCtrl.clear();
 
     await _database
         .collection("my_users")
@@ -218,7 +231,6 @@ class AppCtrl extends Cubit<AppStates> {
         .collection("messages")
         .doc(newMessage.id)
         .set(newMessage.toJson());
-    messageCtrl.clear();
 
     await _database
         .collection("my_users")
@@ -235,7 +247,8 @@ class AppCtrl extends Cubit<AppStates> {
         .collection("chats")
         .doc(newMessage.senderId)
         .set(ChatModel(
-          lastMessage: newMessage.message,
+          lastMessage:
+              newMessage.message.isEmpty ? "Sent a image" : newMessage.message,
           date: newMessage.createdAt,
           user: sender,
           isRead: false,
@@ -247,7 +260,8 @@ class AppCtrl extends Cubit<AppStates> {
         .collection("chats")
         .doc(newMessage.receiverId)
         .set(ChatModel(
-          lastMessage: newMessage.message,
+          lastMessage:
+              newMessage.message.isEmpty ? "Sent a image" : newMessage.message,
           date: newMessage.createdAt,
           user: receiver,
           isRead: false,
@@ -256,7 +270,8 @@ class AppCtrl extends Cubit<AppStates> {
     await _database
         .collection('my_users')
         .doc(newMessage.senderId)
-        .update({'isActive': true});
+        .set({'isActive': true});
+    imagesUrl.clear();
   }
 
   void updateReadingState(String receiverId) async {
@@ -305,10 +320,58 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   void setUserActive(bool state) async {
-    await _database
-        .collection('my_users')
-        .doc(myId)
-        .update({'isActive': state});
+    await _database.collection('my_users').doc(myId).set({'isActive': state});
+  }
+
+  //images
+  List<File> selectedImages = [];
+  List<String> imagesUrl = [];
+
+  Future<void> selectImages() async {
+    selectedImages.clear();
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: true,
+      );
+      if (result != null) {
+        selectedImages = result.paths.map((path) => File(path!)).toList();
+      }
+    } catch (e) {
+      AppToast.error("Error picking image: ${e.toString()}");
+    }
+    emit(SelectImagesState());
+  }
+
+  void removeSelectedImage(int index) {
+    selectedImages.removeAt(index);
+    emit(SelectImagesState());
+  }
+
+  void clearSelectedImages() {
+    selectedImages.clear();
+    imagesUrl.clear();
+    emit(SelectImagesState());
+  }
+
+  Future<void> _uploadImages() async {
+    for (var image in selectedImages) {
+      // Generate a unique file name for each image
+      Reference storageRef =
+          FirebaseStorage.instance.ref().child('uploads/${image.path}');
+
+      try {
+        // Upload image to Firebase Storage
+        UploadTask uploadTask = storageRef.putFile(image);
+        await uploadTask.whenComplete(() {});
+
+        // Get the download URL and add it to the list
+        String downloadUrl = await storageRef.getDownloadURL();
+        imagesUrl.add(downloadUrl);
+      } catch (e) {
+        AppToast.error("Error uploading image: $e");
+      }
+    }
   }
 }
 
@@ -337,3 +400,10 @@ class GetAllUsersSuccessState extends AppStates {}
 class GetAllUsersErrorState extends AppStates {}
 
 class ToggleSearchState extends AppStates {}
+
+//images
+class SelectImagesState extends AppStates {}
+
+class UploadImageLoadingState extends AppStates {}
+
+class UploadImageSuccessState extends AppStates {}
