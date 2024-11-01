@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 abstract class AppColors {
-  static final primary = _HexColor.fromHex("#F7D7C3");
+  static final primary = _HexColor.fromHex("#62D2F4");
 }
 
 extension _HexColor on Color {

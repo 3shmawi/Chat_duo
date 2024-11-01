@@ -1,3 +1,4 @@
+import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
 import 'package:chat_duo/services/local_storage.dart';
@@ -23,12 +24,14 @@ class AppCtrl extends Cubit<AppStates> {
   final usernameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+  final groupTitle = TextEditingController();
 
   void login() {
     if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty) {
       AppToast.info("please fill all the fields first");
       return;
     }
+
     emit(AuthLoadingState());
     _auth
         .signInWithEmailAndPassword(
@@ -137,6 +140,7 @@ class AppCtrl extends Cubit<AppStates> {
 
   void toggleCheckBox() {
     isGroupEnable = !isGroupEnable;
+    selectedUser.clear();
     emit(AppToggleState());
   }
 
@@ -147,6 +151,58 @@ class AppCtrl extends Cubit<AppStates> {
       selectedUser.add(user);
     }
     emit(AppToggleState());
+  }
+
+  void createGroup() {
+    if (selectedUser.length < 2) {
+      AppToast.info("Please select at least two users to create a group");
+      return;
+    }
+    if (groupTitle.text.isEmpty) {
+      AppToast.info("Please enter a group title");
+      return;
+    }
+    selectedUser.add(myData!);
+
+    emit(GroupCreateLoadingState());
+    final newId = DateTime.now().toIso8601String();
+
+    final newGroup = ChatModel(
+      lastMessage: "This group has been created",
+      date: newId,
+      users: selectedUser,
+      isRead: false,
+      groupPicture:
+          "https://img.freepik.com/free-vector/business-team-composition-with-group-people-united-by-one-common-idea_1284-52843.jpg?ga=GA1.1.1653111125.1730445000&semt=ais_hybrid",
+      groupTitle: groupTitle.text,
+    );
+    _database
+        .collection("Salma_Groups")
+        .doc(newId)
+        .set(newGroup.toJson())
+        .then((response) {
+      AppToast.success("Group created successfully");
+      groupTitle.clear();
+      selectedUser.clear();
+      emit(GroupCreateSuccessState());
+    }).catchError((error) {
+      emit(GroupCreateFailureState(error: error.toString()));
+      AppToast.error("An error occurred ${error.toString()}");
+    });
+  }
+
+  Stream<List<ChatModel>> getMyGroups() {
+    return _database
+        .collection('Salma_Groups')
+        .where('users', arrayContains: myData)
+        .snapshots()
+        .map(
+      (snapshot) {
+        return snapshot.docs
+            .map((doc) => ChatModel.fromJson(doc.data()))
+            .toList();
+      },
+    );
   }
 }
 
@@ -174,3 +230,14 @@ class GetUsersSuccessState extends AppStates {}
 
 //logic
 class AppToggleState extends AppStates {}
+
+//group
+class GroupCreateLoadingState extends AppStates {}
+
+class GroupCreateFailureState extends AppStates {
+  final String error;
+
+  GroupCreateFailureState({this.error = ''});
+}
+
+class GroupCreateSuccessState extends AppStates {}

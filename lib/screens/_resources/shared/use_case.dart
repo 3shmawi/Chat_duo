@@ -70,6 +70,7 @@ class AppUseCase extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const CircularProgressIndicator(),

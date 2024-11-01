@@ -44,16 +44,16 @@ class ChatModel {
     return ChatModel(
       lastMessage: json['lastMessage'],
       date: json['date'],
-      users: json['users']
-          .map((userJson) => UserModel.fromJson(userJson))
-          .toList(),
+      users: (json['users'] as List<dynamic>)
+          .map((userJson) =>
+              UserModel.fromJson(userJson as Map<String, dynamic>))
+          .toList(), // Explicitly convert each item to UserModel
       isRead: json['isRead'],
       groupPicture: json['groupPicture'],
       groupTitle: json['groupTitle'],
       senderId: json['senderId'],
     );
   }
-
   ChatModel copyWith({
     String? lastMessage,
     String? date,

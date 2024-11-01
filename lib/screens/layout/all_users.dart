@@ -1,6 +1,5 @@
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
-import 'package:chat_duo/screens/_resources/shared/toast.dart';
 import 'package:chat_duo/screens/_resources/shared/use_case.dart';
 import 'package:chat_duo/screens/layout/widgets.dart';
 import 'package:flutter/material.dart';
@@ -77,17 +76,34 @@ class AllUsersPage extends StatelessWidget {
                             if (cubit.isGroupEnable)
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
-                                child: SizedBox(
-                                  width: 400,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      if (cubit.selectedUser.length < 2) {
-                                        AppToast.error(
-                                            "please select two users at least first");
-                                      }
-                                    },
-                                    child: const Text("CREATE GROUP"),
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: TextField(
+                                        controller: cubit.groupTitle,
+                                        decoration: InputDecoration(
+                                          hintText: "Group Title",
+                                          hintStyle: const TextStyle(
+                                            color: Colors.grey,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (state is GroupCreateLoadingState)
+                                      const LinearProgressIndicator(),
+                                    SizedBox(
+                                      width: 400,
+                                      child: ElevatedButton(
+                                        onPressed: cubit.createGroup,
+                                        child: const Text("CREATE GROUP"),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                           ],
