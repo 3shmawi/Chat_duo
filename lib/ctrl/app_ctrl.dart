@@ -12,10 +12,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class AppCtrl extends Cubit<AppStates> {
   AppCtrl() : super(InitialState());
 
-  bool isDark = false;
+  bool isDark = CacheHelper.getData(key: "isDark") ?? false;
 
   void toggleThemeMode() {
     isDark = !isDark;
+    CacheHelper.saveData(key: "isDark", value: isDark);
     emit(ChangeThemeModeState());
   }
 
@@ -283,8 +284,7 @@ class AppCtrl extends Cubit<AppStates> {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => MessageModel.fromJson(doc.data()))
-            .toList())
-        .asBroadcastStream();
+            .toList());
   }
 
   Stream<List<MessageModel>> getGroupMessages(String groupId) {
@@ -294,10 +294,12 @@ class AppCtrl extends Cubit<AppStates> {
         .collection('messages')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MessageModel.fromJson(doc.data()))
-            .toList())
-        .asBroadcastStream();
+        .map((snapshot) {
+      print(snapshot.docs.first.id);
+      return snapshot.docs
+          .map((doc) => MessageModel.fromJson(doc.data()))
+          .toList();
+    });
   }
 
   Stream<List<ChatModel>> getMyUsers() {
@@ -307,9 +309,9 @@ class AppCtrl extends Cubit<AppStates> {
         .collection('users')
         .orderBy("date", descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatModel.fromJson(doc.data())).toList())
-        .asBroadcastStream();
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatModel.fromJson(doc.data()))
+            .toList());
   }
 
   Stream<List<GroupModel>> getMyGroups() {
@@ -318,10 +320,14 @@ class AppCtrl extends Cubit<AppStates> {
         .orderBy("date", descending: true)
         .where("usersIds", arrayContains: myId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => GroupModel.fromJson(doc.data()))
-            .toList())
-        .asBroadcastStream();
+        .map((snapshot) {
+      print(snapshot.docs.first.id);
+      return snapshot.docs.map((doc) {
+        print(doc['date']);
+        return GroupModel.fromJson(doc.data());
+      }).toList();
+    });
+    // Added .toList() here
   }
 
   final groupNameCtrl = TextEditingController();
@@ -346,6 +352,8 @@ class AppCtrl extends Cubit<AppStates> {
       AppToast.info("Please select at least one user and enter a group name");
       return;
     }
+    groupUsersIds.add(myId!);
+    emit(CreateGroupLoadingState());
     final groupId = DateTime.now().toIso8601String();
 
     await _database.collection("Mostafa_Groups").doc(groupId).set(
@@ -353,8 +361,14 @@ class AppCtrl extends Cubit<AppStates> {
             lastMessage: "This group has been created",
             date: groupId,
             groupName: groupNameCtrl.text,
+            usersIds: groupUsersIds,
+            picture:
+                "https://img.freepik.com/free-vector/user-group-outline-circle_78370-4712.jpg?semt=ais_siglip",
           ).toJson(),
         );
+    groupUsersIds.clear();
+    groupNameCtrl.clear();
+    emit(CreateGroupSuccessState());
   }
 }
 
@@ -386,3 +400,7 @@ class GetAllUsersFailedState extends AppStates {}
 
 //groups
 class AddGroupUserState extends AppStates {}
+
+class CreateGroupLoadingState extends AppStates {}
+
+class CreateGroupSuccessState extends AppStates {}

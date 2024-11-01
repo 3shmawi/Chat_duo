@@ -13,7 +13,12 @@ class NewChatModelSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AppCtrl, AppStates>(
+    return BlocConsumer<AppCtrl, AppStates>(
+      listener: (context, state) {
+        if (state is CreateGroupSuccessState) {
+          Navigator.pop(context);
+        }
+      },
       builder: (context, state) {
         return Container(
           clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -28,6 +33,7 @@ class NewChatModelSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: TextField(
+                  controller: context.read<AppCtrl>().groupNameCtrl,
                   decoration: InputDecoration(
                     hintText: 'Enter group name',
                     border: OutlineInputBorder(
@@ -100,6 +106,8 @@ class NewChatModelSheet extends StatelessWidget {
                       );
                     }),
               ),
+              if (state is CreateGroupLoadingState)
+                const LinearProgressIndicator(),
               if (isGroup)
                 Padding(
                   padding: const EdgeInsets.all(8.0),

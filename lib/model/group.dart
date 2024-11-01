@@ -14,7 +14,7 @@ class GroupModel {
   });
 
   Map<String, dynamic> toJson() {
-    if (picture == null || groupName == null || usersIds == null) {
+    if (groupName == null && picture == null && usersIds == null) {
       return {
         'lastMessage': lastMessage,
         'date': date,
@@ -35,7 +35,8 @@ class GroupModel {
       groupName: json['groupName'],
       lastMessage: json['lastMessage'],
       date: json['date'],
-      usersIds: json['usersIds'],
+      usersIds: List<String>.from(
+          json['usersIds']), // Converts List<dynamic> to List<String>
     );
   }
 

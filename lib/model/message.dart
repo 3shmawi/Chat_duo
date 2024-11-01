@@ -35,7 +35,7 @@ class MessageModel {
       createdAt: json['createdAt'],
       sender: UserModel.fromJson(json['sender']),
       receiver: UserModel.fromJson(json['receiver']),
-      isGroup: json['isGroup'],
+      isGroup: json['isGroup'] ?? false,
     );
   }
 }

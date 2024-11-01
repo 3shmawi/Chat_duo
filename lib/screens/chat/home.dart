@@ -167,6 +167,7 @@ class ChatHomeScreen extends StatelessWidget {
             StreamBuilder<List<ChatModel>>(
               stream: AppCtrl().getMyUsers(),
               builder: (context, snapshot) {
+                print(snapshot.connectionState);
                 if (snapshot.connectionState == ConnectionState.active) {
                   final users = snapshot.data;
 
@@ -174,21 +175,23 @@ class ChatHomeScreen extends StatelessWidget {
                     return const Center(child: Text("No users yet"));
                   }
                   return ListView.builder(
-                      itemCount: users.length,
-                      itemBuilder: (context, index) => InkWell(
-                          onTap: () {
-                            toPage(
-                              context,
-                              DetailsScreen(
-                                users[index],
-                                isGroup: false,
-                              ),
-                            );
-                          },
-                          child: HomeChatCardItem(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) => InkWell(
+                      onTap: () {
+                        toPage(
+                          context,
+                          DetailsScreen(
                             users[index],
                             isGroup: false,
-                          )));
+                          ),
+                        );
+                      },
+                      child: HomeChatCardItem(
+                        users[index],
+                        isGroup: false,
+                      ),
+                    ),
+                  );
                 }
                 return Center(
                   child: Lottie.asset("assets/json/loading.json", width: 150),
@@ -200,6 +203,7 @@ class ChatHomeScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.active) {
                   final groups = snapshot.data;
+                  print(snapshot.error);
 
                   if (groups == null || groups.isEmpty) {
                     return const Center(child: Text("No groups yet"));
@@ -226,8 +230,9 @@ class ChatHomeScreen extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 30,
-                                backgroundImage:
-                                    NetworkImage(groups[index].picture!),
+                                backgroundImage: NetworkImage(groups[index]
+                                        .picture ??
+                                    "https://plus.unsplash.com/premium_vector-1724431032286-6b1fbe183ba4?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Z3JvdXAlMjBkZWZhdWx0JTIwaW1hZ2V8ZW58MHx8MHx8fDA%3D"),
                               ),
                               const SizedBox(width: 5),
                               Expanded(

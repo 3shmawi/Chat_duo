@@ -38,7 +38,8 @@ class DetailsScreen extends StatelessWidget {
               backgroundColor: Colors.white,
               child: CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(chat.user.avatar),
+                backgroundImage:
+                    NetworkImage(isGroup ? chat.picture : chat.user.avatar),
               ),
             ),
             const SizedBox(width: 8),
@@ -46,7 +47,7 @@ class DetailsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  chat.user.name,
+                  isGroup ? chat.groupName : chat.user.name,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -68,13 +69,16 @@ class DetailsScreen extends StatelessWidget {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: ctrl.getMessages(chat.user.id),
+              stream: isGroup
+                  ? ctrl.getGroupMessages(chat.date)
+                  : ctrl.getMessages(chat.user.id),
               builder: (context, snapshot) {
+                print(snapshot.error);
                 if (snapshot.connectionState == ConnectionState.active) {
                   final messages = snapshot.data;
-
+                  print(messages);
                   if (messages == null || messages.isEmpty) {
-                    return Center(child: Text("No messages yet"));
+                    return const Center(child: Text("No messages yet"));
                   }
                   return ListView.builder(
                     itemCount: messages.length,
@@ -116,7 +120,15 @@ class DetailsScreen extends StatelessWidget {
                   if (sender == null) {
                     AppToast.info("Please login first");
                   } else {
-                    ctrl.sendMessage(sender: sender, receiver: chat.user);
+                    if (isGroup) {
+                      ctrl.sendMessage(
+                        sender: sender,
+                        groupId: chat.date,
+                        isGroup: true,
+                      );
+                    } else {
+                      ctrl.sendMessage(sender: sender, receiver: chat.user);
+                    }
                   }
                 },
                 icon: Icon(
