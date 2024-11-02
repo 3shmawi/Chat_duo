@@ -92,7 +92,7 @@ class ChatHomeItem extends StatelessWidget {
                       ),
                     if (!chat.isRead) const SizedBox(width: 5),
                     Text(
-                      daysBetween(chat.date),
+                      chat.date.isEmpty ? "" : daysBetween(chat.date),
                       maxLines: 1,
                       style: TextStyle(
                         fontSize: 14,
