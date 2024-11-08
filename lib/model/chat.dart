@@ -1,6 +1,7 @@
 import 'package:chat_duo/model/user.dart';
 
 class ChatModel {
+  final String id;
   final String lastMessage;
   final String date;
   final List<UserModel> users;
@@ -10,6 +11,7 @@ class ChatModel {
   final String? senderId;
 
   ChatModel({
+    required this.id,
     required this.lastMessage,
     required this.date,
     required this.users,
@@ -22,6 +24,7 @@ class ChatModel {
   Map<String, dynamic> toJson() {
     if (groupPicture != null && groupTitle != null) {
       return {
+        'id': id,
         'lastMessage': lastMessage,
         'date': date,
         'users': users.map((user) => user.toJson()).toList(),
@@ -42,6 +45,7 @@ class ChatModel {
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
     return ChatModel(
+      id: json['id'],
       lastMessage: json['lastMessage'],
       date: json['date'],
       users: (json['users'] as List<dynamic>)
@@ -71,6 +75,7 @@ class ChatModel {
       groupPicture: groupPicture ?? this.groupPicture,
       groupTitle: groupTitle ?? this.groupTitle,
       senderId: senderId ?? this.senderId,
+      id: id,
     );
   }
 }

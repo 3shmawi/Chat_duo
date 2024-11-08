@@ -1,6 +1,13 @@
+import 'package:chat_duo/app/constants.dart';
+import 'package:chat_duo/app/functions.dart';
+import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/screens/_resources/colors.dart';
+import 'package:chat_duo/screens/_resources/shared/use_case.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class DetailsPage extends StatelessWidget {
   const DetailsPage(this.chat, {super.key});
@@ -10,7 +17,8 @@ class DetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGroup = chat.users.length > 2;
-
+    final ctrl = AppCtrl();
+    final senderId = ctrl.myId;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -60,24 +68,75 @@ class DetailsPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          const _MessageItem(
-            isSender: true,
+          Expanded(
+            child: StreamBuilder<List<MessageModel>>(
+                stream: ctrl.getMessages(chatId: chat.id, isGroup: isGroup),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.active) {
+                    final messages = snapshot.data;
+                    if (messages == null) {
+                      return AppUseCase(
+                        UseCase.failure,
+                        errorMessage: snapshot.error.toString(),
+                      );
+                    }
+                    if (messages.isEmpty) {
+                      return const AppUseCase(UseCase.empty);
+                    }
+                    return ListView.builder(
+                      itemBuilder: (context, index) => _MessageItem(
+                        message: messages[index],
+                        myId: senderId ?? "",
+                        isGroup: isGroup,
+                      ),
+                      itemCount: messages.length,
+                    );
+                  }
+                  return const AppUseCase(UseCase.loading);
+                }),
           ),
-          const _MessageItem(
-            isSender: false,
-          ),
-          const _MessageItem(
-            isSender: true,
-          ),
-          const _MessageItem(
-            isSender: true,
-          ),
-          const _MessageItem(
-            isSender: true,
-          ),
-          const _MessageItem(
-            isSender: false,
-          ),
+          BlocBuilder<AppCtrl, AppStates>(
+            builder: (context, state) {
+              final cubit = context.read<AppCtrl>();
+              return Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: cubit.messageCtrl,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        hintText: "Write your message",
+                        hintStyle: TextStyle(
+                            fontSize: 16, color: Colors.grey.shade400),
+                        suffixIcon: IconButton(
+                          onPressed: () {},
+                          icon: const Icon(
+                            CupertinoIcons.photo_on_rectangle,
+                            color: Colors.cyan,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      cubit.sendMessage(
+                        users: chat.users,
+                        chatId: chat.id,
+                        isGroup: isGroup,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.cyan,
+                    ),
+                  )
+                ],
+              );
+            },
+          )
         ],
       ),
     );
@@ -86,15 +145,18 @@ class DetailsPage extends StatelessWidget {
 
 class _MessageItem extends StatelessWidget {
   const _MessageItem({
-    this.isSender = false,
+    required this.message,
+    required this.myId,
     this.isGroup = true,
   });
 
-  final bool isSender;
+  final String myId;
   final bool isGroup;
+  final MessageModel message;
 
   @override
   Widget build(BuildContext context) {
+    final bool isSender = message.senderId == myId;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -104,9 +166,11 @@ class _MessageItem extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primary,
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 14,
               backgroundColor: Colors.white,
+              backgroundImage:
+                  NetworkImage(message.senderPicture ?? AppConsts.userAvatar),
             ),
           ),
         Expanded(
@@ -132,14 +196,15 @@ class _MessageItem extends StatelessWidget {
               child: RichText(
                 text: TextSpan(
                   children: [
-                    TextSpan(text: "Message"),
-                    TextSpan(
+                    TextSpan(text: message.text),
+                    const TextSpan(
                       text: "\n",
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     TextSpan(
-                      text: "1m",
-                      style: TextStyle(
+                      text:
+                          message.date.isEmpty ? "" : daysBetween(message.date),
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white60,
                       ),

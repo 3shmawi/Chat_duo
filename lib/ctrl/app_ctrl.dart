@@ -1,3 +1,4 @@
+import 'package:chat_duo/app/constants.dart';
 import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
@@ -6,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../model/message.dart';
 
 //
 class AppCtrl extends Cubit<AppStates> {
@@ -79,8 +82,7 @@ class AppCtrl extends Cubit<AppStates> {
       id: uid,
       name: usernameCtrl.text,
       email: emailCtrl.text,
-      avatar:
-          "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?size=626&ext=jpg",
+      avatar: AppConsts.userAvatar,
       createdAt: DateTime.now().toIso8601String(),
       updatedAt: DateTime.now().toIso8601String(),
     );
@@ -107,6 +109,7 @@ class AppCtrl extends Cubit<AppStates> {
   //get user data
   Future<void> getMyData(String myId) async {
     myData = await getUserData(myId);
+    print(myData!.name);
     emit(AuthSuccessState());
   }
 
@@ -162,18 +165,22 @@ class AppCtrl extends Cubit<AppStates> {
       AppToast.info("Please enter a group title");
       return;
     }
+    if (myData == null) {
+      AppToast.info("You need to login first");
+      return;
+    }
     selectedUser.add(myData!);
 
     emit(GroupCreateLoadingState());
     final newId = DateTime.now().toIso8601String();
 
     final newGroup = ChatModel(
+      id: newId,
       lastMessage: "This group has been created",
       date: newId,
       users: selectedUser,
       isRead: false,
-      groupPicture:
-          "https://img.freepik.com/free-vector/business-team-composition-with-group-people-united-by-one-common-idea_1284-52843.jpg?ga=GA1.1.1653111125.1730445000&semt=ais_hybrid",
+      groupPicture: AppConsts.groupAvatar,
       groupTitle: groupTitle.text,
     );
     _database
@@ -203,6 +210,101 @@ class AppCtrl extends Cubit<AppStates> {
             .toList();
       },
     );
+  }
+
+  //message
+  Stream<List<MessageModel>> getMessages({
+    required String chatId,
+    bool isGroup = false,
+  }) {
+    if (isGroup) {
+      return _database
+          .collection('Salma_Groups')
+          .doc(chatId)
+          .collection("Messages")
+          .orderBy('date', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs
+              .map((doc) => MessageModel.fromMap(doc.data()))
+              .toList();
+        },
+      );
+    } else {
+      return _database
+          .collection('Salma_Chats')
+          .doc(chatId)
+          .collection("Messages")
+          .orderBy('date', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs
+              .map((doc) => MessageModel.fromMap(doc.data()))
+              .toList();
+        },
+      );
+    }
+  }
+
+  final messageCtrl = TextEditingController();
+
+  void sendMessage({
+    String? chatId,
+    bool isGroup = false,
+    required List<UserModel> users,
+  }) async {
+    if (messageCtrl.text.isEmpty) {
+      AppToast.info("Please enter a message");
+      return;
+    }
+    if (myData == null) {
+      AppToast.info("Please login first");
+      return;
+    }
+    print(myData!.email);
+
+    final id = DateTime.now().toIso8601String();
+    final message = MessageModel(
+      id: id,
+      text: messageCtrl.text,
+      date: id,
+      senderId: myData!.id,
+      imagesUrl: [],
+      isEdited: false,
+      senderPicture: myData!.avatar,
+    );
+    if (isGroup) {
+      await _database
+          .collection('Salma_Groups')
+          .doc(chatId)
+          .collection('Messages')
+          .doc(id)
+          .set(message.toMap());
+    } else {
+      await _database
+          .collection('Salma_Chats')
+          .doc(chatId)
+          .collection('Messages')
+          .doc(id)
+          .set(message.toMap());
+    }
+
+    messageCtrl.clear();
+    if (isGroup) {
+      await _database.collection("Salma_Groups").doc(chatId).update({
+        'lastMessage': message.text,
+        'date': message.date,
+        'isRead': false,
+      });
+    } else {
+      await _database.collection("Salma_Chats").doc(chatId).update({
+        'lastMessage': message.text,
+        'date': message.date,
+        'isRead': false,
+      });
+    }
   }
 }
 

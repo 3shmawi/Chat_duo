@@ -1,3 +1,4 @@
+import 'package:chat_duo/app/functions.dart';
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/chat.dart';
 import 'package:chat_duo/screens/_resources/shared/use_case.dart';
@@ -52,6 +53,8 @@ class AllUsersPage extends StatelessWidget {
                                   children: [
                                     ChatHomeItem(
                                       ChatModel(
+                                          id: newId(AppCtrl().myId ?? "",
+                                              users[index].id),
                                           lastMessage: "Start chat with me,",
                                           date: "",
                                           users: [users[index]],

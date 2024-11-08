@@ -26,3 +26,10 @@ String formatDate(String date) {
     DateTime.parse(date),
   );
 }
+
+String newId(String myId, String otherId) {
+  String id = myId + otherId;
+  List<String> idChars = id.split(''); // Split into individual characters
+  idChars.sort(); // Sort alphabetically
+  return idChars.join(); // Join sorted characters back into a string
+}
