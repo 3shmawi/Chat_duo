@@ -7,9 +7,13 @@ import 'package:chat_duo/screens/layout/profile_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media_recorder/audio_encoder_type.dart';
+import 'package:social_media_recorder/screen/social_media_recorder.dart';
 
 import '../../app/functions.dart';
+import 'audio_player.dart';
 import 'display_image.dart';
+import 'image_or_video_display.dart';
 
 class DetailsView extends StatelessWidget {
   const DetailsView(this.receiver, {super.key});
@@ -62,10 +66,18 @@ class DetailsView extends StatelessWidget {
                     }
 
                     return ListView.builder(
-                      itemBuilder: (context, index) => _ChatItem(
-                        message: messages[index],
-                        isSender: receiver.id == messages[index].receiverId,
-                      ),
+                      itemBuilder: (context, index) =>
+                          _isAudioUrl(messages[index].message)
+                              ? AudioMessageWidget(
+                                  audioUrl: messages[index].message,
+                                  isSender:
+                                      receiver.id == messages[index].receiverId,
+                                )
+                              : _ChatItem(
+                                  message: messages[index],
+                                  isSender:
+                                      receiver.id == messages[index].receiverId,
+                                ),
                       itemCount: messages.length,
                     );
                   }
@@ -123,6 +135,9 @@ class DetailsView extends StatelessWidget {
                     children: [
                       Expanded(
                         child: TextField(
+                          onChanged: (value) {
+                            cubit.refresh();
+                          },
                           controller: context.read<AppCtrl>().messageCtrl,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
@@ -147,15 +162,30 @@ class DetailsView extends StatelessWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () {
-                          cubit.sendMessage(receiver, sender!);
-                        },
-                        icon: const Icon(
-                          Icons.send,
-                          color: Colors.red,
-                        ),
-                      ),
+                      cubit.messageCtrl.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                cubit.sendMessage(receiver, sender!);
+                              },
+                              icon: const Icon(
+                                Icons.send,
+                                color: Colors.red,
+                              ),
+                            )
+                          : SocialMediaRecorder(
+                              sendRequestFunction: (soundFile, time) {
+                                cubit.sendMessage(receiver, sender!,
+                                    audioFile: soundFile);
+                                print(soundFile.path);
+                                print(time);
+                              },
+                              backGroundColor: Colors.transparent,
+                              encode: AudioEncoderType.AAC,
+                              recordIcon: const Icon(
+                                CupertinoIcons.mic_fill,
+                                color: Colors.red,
+                              ),
+                            ),
                     ],
                   ),
                 ],
@@ -165,6 +195,11 @@ class DetailsView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  bool _isAudioUrl(String url) {
+    final audioExtensions = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
+    return audioExtensions.any((ext) => url.toLowerCase().contains(ext));
   }
 }
 
@@ -194,23 +229,13 @@ class _ChatItem extends StatelessWidget {
                       onTap: () {
                         toPage(
                           context,
-                          ImageViewerPage(
-                            imagePaths: message.imgUrl,
+                          MediaViewerPage(
+                            mediaUrls: message.imgUrl,
                             initialIndex: index,
                           ),
                         );
                       },
-                      child: SizedBox(
-                        height: 100,
-                        width: 150,
-                        child: Card(
-                          clipBehavior: Clip.antiAliasWithSaveLayer,
-                          child: Image.network(
-                            message.imgUrl[index],
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
+                      child: MediaWidget(mediaUrl: message.imgUrl[index]),
                     ),
                   ),
                 ),

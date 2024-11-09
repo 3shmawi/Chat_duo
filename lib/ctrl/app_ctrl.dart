@@ -49,7 +49,6 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   //auth
-
   void login() {
     if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty) {
       AppToast.error("Please fill all fields");
@@ -146,7 +145,6 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   //search and all users
-
   void toggleSearch() {
     searchText.clear();
     isSearch = !isSearch;
@@ -197,8 +195,11 @@ class AppCtrl extends Cubit<AppStates> {
             .toList());
   }
 
-  void sendMessage(UserModel receiver, UserModel sender) async {
-    if (messageCtrl.text.isEmpty && selectedImages.isEmpty) {
+  void sendMessage(UserModel receiver, UserModel sender,
+      {File? audioFile}) async {
+    if (messageCtrl.text.isEmpty &&
+        selectedImages.isEmpty &&
+        audioFile == null) {
       AppToast.error("Please enter a message or select an image");
       return;
     }
@@ -212,9 +213,17 @@ class AppCtrl extends Cubit<AppStates> {
 
       emit(UploadImageSuccessState());
     }
+    // Upload audio file if provided
+    String? audioUrl;
+    if (audioFile != null) {
+      emit(UploadImageLoadingState());
+
+      audioUrl = await _uploadAudioFile(audioFile);
+      emit(UploadImageSuccessState());
+    }
     final newMessage = MessageModel(
       id: newId,
-      message: messageCtrl.text,
+      message: audioUrl ?? messageCtrl.text,
       createdAt: newId,
       updatedAt: newId,
       senderId: sender.id,
@@ -331,7 +340,6 @@ class AppCtrl extends Cubit<AppStates> {
     selectedImages.clear();
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
         allowMultiple: true,
       );
       if (result != null) {
@@ -373,6 +381,23 @@ class AppCtrl extends Cubit<AppStates> {
       }
     }
   }
+
+  Future<String> _uploadAudioFile(File audioFile) async {
+    final storageRef =
+        FirebaseStorage.instance.ref().child('audio/${audioFile.path}');
+    try {
+      UploadTask uploadTask = storageRef.putFile(audioFile);
+      await uploadTask.whenComplete(() {});
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      AppToast.error("Error uploading audio: $e");
+      return '';
+    }
+  }
+
+  void refresh() {
+    emit(RefreshState());
+  }
 }
 
 abstract class AppStates {}
@@ -407,3 +432,12 @@ class SelectImagesState extends AppStates {}
 class UploadImageLoadingState extends AppStates {}
 
 class UploadImageSuccessState extends AppStates {}
+
+//videos
+class SelectVideosState extends AppStates {}
+
+class UploadVideoLoadingState extends AppStates {}
+
+class UploadVideoSuccessState extends AppStates {}
+
+class RefreshState extends AppStates {}
