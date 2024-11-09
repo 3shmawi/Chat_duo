@@ -1,6 +1,6 @@
 // import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:chat_duo/screens/layout/widget.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AudioMessageWidget extends StatefulWidget {
@@ -14,10 +14,10 @@ class AudioMessageWidget extends StatefulWidget {
   });
 
   @override
-  _AudioMessageWidgetState createState() => _AudioMessageWidgetState();
+  AudioMessageWidgetState createState() => AudioMessageWidgetState();
 }
 
-class _AudioMessageWidgetState extends State<AudioMessageWidget> {
+class AudioMessageWidgetState extends State<AudioMessageWidget> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isPlaying = false;
   bool isLoading = true;
@@ -86,8 +86,12 @@ class _AudioMessageWidgetState extends State<AudioMessageWidget> {
   Widget _buildAudioPlayer() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[300],
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: Colors.red,
+          width: 1,
+        ),
       ),
       padding: const EdgeInsets.all(10),
       child: Column(
@@ -95,25 +99,27 @@ class _AudioMessageWidgetState extends State<AudioMessageWidget> {
         children: [
           // Waveform display
 
-          const AudioWave(),
+          // AudioWave(
+          //   audioUrl: widget.audioUrl,
+          // ),
           const SizedBox(height: 5),
           // Play/pause button and progress bar
           Row(
             children: [
               IconButton(
                 icon: Icon(
-                  isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.blueAccent,
+                  isPlaying ? CupertinoIcons.pause : CupertinoIcons.play,
+                  color: Colors.red,
                 ),
                 onPressed: _togglePlayPause,
               ),
-              Expanded(
-                child: Slider(
-                  value: position.inSeconds.toDouble(),
-                  max: duration.inSeconds.toDouble(),
-                  onChanged: _seekAudio,
-                ),
+              Slider(
+                value: position.inMicroseconds.toDouble(),
+                max: duration.inMicroseconds.toDouble(),
+                inactiveColor: Colors.grey.shade300,
+                onChanged: _seekAudio,
               ),
+              Text(duration.inSeconds.toString())
             ],
           ),
         ],
