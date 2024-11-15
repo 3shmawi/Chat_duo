@@ -39,7 +39,7 @@ class MessageModel {
       date: map['date'],
       senderId: map['senderId'],
       receiverId: map['receiverId'],
-      imagesUrl: map['imagesUrl'],
+      imagesUrl: map['imagesUrl'].cast<String>(),
       isEdited: map['isEdited'],
       senderPicture: map['senderPicture'],
     );

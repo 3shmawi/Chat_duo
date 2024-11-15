@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../model/user.dart';
+
 String daysBetween(String date) {
   final parsedDate = DateTime.parse(date);
   if (DateTime.now().difference(parsedDate).inDays <= 5) {
@@ -32,4 +34,21 @@ String newId(String myId, String otherId) {
   List<String> idChars = id.split(''); // Split into individual characters
   idChars.sort(); // Sort alphabetically
   return idChars.join(); // Join sorted characters back into a string
+}
+
+String getFirstNames(List<UserModel> users, String myId) {
+  if (users.isEmpty) return "";
+
+  // Remove myself from the list
+  users.removeWhere((user) => user.id == myId);
+
+  // Extract first names
+  List<String> firstNames =
+      users.map((user) => user.name.split(" ").first).toList();
+
+  // Add "you" to the list if it's not empty
+  firstNames.insert(0, "You");
+
+  // Join with a comma
+  return firstNames.join(", ");
 }

@@ -156,7 +156,7 @@ class AppCtrl extends Cubit<AppStates> {
     emit(AppToggleState());
   }
 
-  void createGroup() {
+  void createGroup() async {
     if (selectedUser.length < 2) {
       AppToast.info("Please select at least two users to create a group");
       return;
@@ -165,13 +165,12 @@ class AppCtrl extends Cubit<AppStates> {
       AppToast.info("Please enter a group title");
       return;
     }
-    if (myData == null) {
-      AppToast.info("You need to login first");
-      return;
-    }
-    selectedUser.add(myData!);
-
     emit(GroupCreateLoadingState());
+
+    final mData = await getUserData(myId!);
+
+    selectedUser.add(mData);
+
     final newId = DateTime.now().toIso8601String();
 
     final newGroup = ChatModel(
@@ -202,6 +201,7 @@ class AppCtrl extends Cubit<AppStates> {
     return _database
         .collection('Salma_Groups')
         .where('users', arrayContains: myData)
+        .orderBy("date", descending: true)
         .snapshots()
         .map(
       (snapshot) {
@@ -222,7 +222,7 @@ class AppCtrl extends Cubit<AppStates> {
           .collection('Salma_Groups')
           .doc(chatId)
           .collection("Messages")
-          .orderBy('date', descending: true)
+          .orderBy('date', descending: false)
           .snapshots()
           .map(
         (snapshot) {
@@ -236,7 +236,7 @@ class AppCtrl extends Cubit<AppStates> {
           .collection('Salma_Chats')
           .doc(chatId)
           .collection("Messages")
-          .orderBy('date', descending: true)
+          .orderBy('date', descending: false)
           .snapshots()
           .map(
         (snapshot) {
@@ -259,21 +259,16 @@ class AppCtrl extends Cubit<AppStates> {
       AppToast.info("Please enter a message");
       return;
     }
-    if (myData == null) {
-      AppToast.info("Please login first");
-      return;
-    }
-    print(myData!.email);
-
+    final user = await getUserData(myId!);
     final id = DateTime.now().toIso8601String();
     final message = MessageModel(
       id: id,
       text: messageCtrl.text,
       date: id,
-      senderId: myData!.id,
+      senderId: user.id,
       imagesUrl: [],
       isEdited: false,
-      senderPicture: myData!.avatar,
+      senderPicture: user.avatar,
     );
     if (isGroup) {
       await _database

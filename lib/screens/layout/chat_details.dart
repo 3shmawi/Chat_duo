@@ -16,6 +16,7 @@ class DetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print(chat.id);
     final isGroup = chat.users.length > 2;
     final ctrl = AppCtrl();
     final senderId = ctrl.myId;
@@ -54,7 +55,9 @@ class DetailsPage extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    isGroup ? "You, Mohamed" : "online",
+                    isGroup
+                        ? getFirstNames(chat.users, senderId ?? "")
+                        : "Online",
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -77,7 +80,7 @@ class DetailsPage extends StatelessWidget {
                     if (messages == null) {
                       return AppUseCase(
                         UseCase.failure,
-                        errorMessage: snapshot.error.toString(),
+                        errorMessage: "Message\n${snapshot.error.toString()}",
                       );
                     }
                     if (messages.isEmpty) {
