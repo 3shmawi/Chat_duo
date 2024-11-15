@@ -251,7 +251,7 @@ class AppCtrl extends Cubit<AppStates> {
   final messageCtrl = TextEditingController();
 
   void sendMessage({
-    String? chatId,
+    required String chatId,
     bool isGroup = false,
     required List<UserModel> users,
   }) async {
