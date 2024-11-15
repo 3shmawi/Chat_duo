@@ -3,14 +3,18 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/functions.dart';
+
 class AudioMessageWidget extends StatefulWidget {
   final String audioUrl;
+  final String date;
   final bool isSender;
 
   const AudioMessageWidget({
     super.key,
     required this.audioUrl,
     required this.isSender,
+    required this.date,
   });
 
   @override
@@ -67,49 +71,42 @@ class AudioMessageWidgetState extends State<AudioMessageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      child: Row(
-        mainAxisAlignment:
-            widget.isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (widget.isSender) ...[
-            _buildAudioPlayer(),
-          ] else ...[
-            _buildAudioPlayer(),
-          ],
-        ],
-      ),
+    return Row(
+      mainAxisAlignment:
+          widget.isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        _buildAudioPlayer(),
+      ],
     );
   }
 
   Widget _buildAudioPlayer() {
     return Container(
+      margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: Colors.red,
+          color: widget.isSender ? Colors.red : Colors.grey,
           width: 1,
         ),
       ),
       padding: const EdgeInsets.all(10),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Waveform display
 
           // AudioWave(
           //   audioUrl: widget.audioUrl,
           // ),
-          const SizedBox(height: 5),
           // Play/pause button and progress bar
           Row(
             children: [
               IconButton(
                 icon: Icon(
                   isPlaying ? CupertinoIcons.pause : CupertinoIcons.play,
-                  color: Colors.red,
+                  color: widget.isSender ? Colors.red : Colors.grey,
                 ),
                 onPressed: _togglePlayPause,
               ),
@@ -117,10 +114,18 @@ class AudioMessageWidgetState extends State<AudioMessageWidget> {
                 value: position.inMicroseconds.toDouble(),
                 max: duration.inMicroseconds.toDouble(),
                 inactiveColor: Colors.grey.shade300,
+                activeColor: widget.isSender ? Colors.red : Colors.grey,
+                thumbColor: widget.isSender ? Colors.red : Colors.grey,
                 onChanged: _seekAudio,
               ),
-              Text(duration.inSeconds.toString())
             ],
+          ),
+          Text(
+            daysBetween(widget.date),
+            style: TextStyle(
+              color: widget.isSender ? Colors.grey.shade500 : Colors.black45,
+              fontSize: 12,
+            ),
           ),
         ],
       ),

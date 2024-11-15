@@ -69,6 +69,7 @@ class DetailsView extends StatelessWidget {
                       itemBuilder: (context, index) =>
                           _isAudioUrl(messages[index].message)
                               ? AudioMessageWidget(
+                                  date: messages[index].createdAt,
                                   audioUrl: messages[index].message,
                                   isSender:
                                       receiver.id == messages[index].receiverId,
