@@ -38,15 +38,23 @@ class SignupScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   TextField(
                     controller: cubit.usernameCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'User Name',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w300,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: cubit.emailCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Email Address',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w300,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -55,6 +63,10 @@ class SignupScreen extends StatelessWidget {
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: 'Password',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w300,
+                      ),
                       suffixIcon: IconButton(
                         onPressed: cubit.togglePasswordVisibility,
                         icon: Icon(

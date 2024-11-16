@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chat_duo/ctrl/app_ctrl.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
@@ -15,10 +17,62 @@ import 'audio_player.dart';
 import 'display_image.dart';
 import 'image_or_video_display.dart';
 
-class DetailsView extends StatelessWidget {
+class DetailsView extends StatefulWidget {
   const DetailsView(this.receiver, {super.key});
 
   final UserModel receiver;
+
+  @override
+  State<DetailsView> createState() => _DetailsViewState();
+}
+
+class _DetailsViewState extends State<DetailsView> {
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  bool isKeyboardActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    });
+    Future.delayed(const Duration(milliseconds: 300)).then((_) => _goBottom());
+    _focusNode.addListener(() {
+      setState(() {
+        isKeyboardActive = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  late final Timer _timer;
+
+  _refresh() {
+    _timer = Timer.periodic(
+      const Duration(minutes: 1),
+      (t) => setState(() {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    // socket.disconnect();
+    // socket.dispose();
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _goBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,15 +92,15 @@ class DetailsView extends StatelessWidget {
               ),
             ),
             GestureDetector(
-              onTap: () => toPage(context, ProfileView(receiver.id)),
+              onTap: () => toPage(context, ProfileView(widget.receiver.id)),
               child: CircleAvatar(
                 radius: 25,
-                backgroundImage: NetworkImage(receiver.avatar),
+                backgroundImage: NetworkImage(widget.receiver.avatar),
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              receiver.name,
+              widget.receiver.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             )
@@ -57,32 +111,40 @@ class DetailsView extends StatelessWidget {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-                stream: AppCtrl().getMessages(receiver.id),
+                stream: AppCtrl().getMessages(widget.receiver.id),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active) {
                     final messages = snapshot.data;
                     if (messages == null || messages.isEmpty) {
-                      return const UseCaseWidget(UseCases.empty);
+                      return SingleChildScrollView(
+                          controller: _scrollController,
+                          child: const UseCaseWidget(UseCases.empty));
                     }
 
                     return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(
+                        bottom: 20,
+                      ),
                       itemBuilder: (context, index) =>
                           _isAudioUrl(messages[index].message)
                               ? AudioMessageWidget(
                                   date: messages[index].createdAt,
                                   audioUrl: messages[index].message,
-                                  isSender:
-                                      receiver.id == messages[index].receiverId,
+                                  isSender: widget.receiver.id ==
+                                      messages[index].receiverId,
                                 )
                               : _ChatItem(
                                   message: messages[index],
-                                  isSender:
-                                      receiver.id == messages[index].receiverId,
+                                  isSender: widget.receiver.id ==
+                                      messages[index].receiverId,
                                 ),
                       itemCount: messages.length,
                     );
                   }
-                  return const UseCaseWidget(UseCases.loading);
+                  return SingleChildScrollView(
+                      controller: _scrollController,
+                      child: const UseCaseWidget(UseCases.loading));
                 }),
           ),
           BlocBuilder<AppCtrl, AppStates>(
@@ -138,6 +200,7 @@ class DetailsView extends StatelessWidget {
                         child: TextField(
                           onChanged: (value) {
                             cubit.refresh();
+                            _goBottom();
                           },
                           controller: context.read<AppCtrl>().messageCtrl,
                           decoration: InputDecoration(
@@ -166,7 +229,8 @@ class DetailsView extends StatelessWidget {
                       cubit.messageCtrl.text.isNotEmpty
                           ? IconButton(
                               onPressed: () {
-                                cubit.sendMessage(receiver, sender!);
+                                cubit.sendMessage(widget.receiver, sender!);
+                                _goBottom();
                               },
                               icon: const Icon(
                                 Icons.send,
@@ -175,7 +239,7 @@ class DetailsView extends StatelessWidget {
                             )
                           : SocialMediaRecorder(
                               sendRequestFunction: (soundFile, time) {
-                                cubit.sendMessage(receiver, sender!,
+                                cubit.sendMessage(widget.receiver, sender!,
                                     audioFile: soundFile);
                                 print(soundFile.path);
                                 print(time);

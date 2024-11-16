@@ -40,8 +40,12 @@ class LoginScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   TextField(
                     controller: cubit.emailCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Email Password',
+                    decoration: InputDecoration(
+                      hintText: 'Email Address',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w300,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -50,6 +54,10 @@ class LoginScreen extends StatelessWidget {
                     obscureText: cubit.isPassword,
                     decoration: InputDecoration(
                       hintText: 'Password',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w300,
+                      ),
                       suffixIcon: IconButton(
                         onPressed: cubit.togglePasswordVisibility,
                         icon: Icon(

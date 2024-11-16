@@ -32,19 +32,25 @@ class AudioMessageWidgetState extends State<AudioMessageWidget> {
   void initState() {
     super.initState();
     _audioPlayer.onDurationChanged.listen((d) {
-      setState(() {
-        duration = d;
-      });
+      if (mounted) {
+        setState(() {
+          duration = d;
+        });
+      }
     });
     _audioPlayer.onPositionChanged.listen((p) {
-      setState(() {
-        position = p;
-      });
+      if (mounted) {
+        setState(() {
+          position = p;
+        });
+      }
     });
     _audioPlayer.onPlayerStateChanged.listen((state) {
-      setState(() {
-        isPlaying = state == PlayerState.playing;
-      });
+      if (mounted) {
+        setState(() {
+          isPlaying = state == PlayerState.playing;
+        });
+      }
     });
   }
 
@@ -123,7 +129,7 @@ class AudioMessageWidgetState extends State<AudioMessageWidget> {
           Text(
             daysBetween(widget.date),
             style: TextStyle(
-              color: widget.isSender ? Colors.grey.shade500 : Colors.black45,
+              color: Colors.grey.shade500,
               fontSize: 12,
             ),
           ),

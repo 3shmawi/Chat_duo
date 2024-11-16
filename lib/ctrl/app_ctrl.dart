@@ -24,6 +24,7 @@ class AppCtrl extends Cubit<AppStates> {
 
   final _auth = FirebaseAuth.instance;
   final _database = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
 
   final usernameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
@@ -136,6 +137,7 @@ class AppCtrl extends Cubit<AppStates> {
       user = null;
       myId = null;
       CacheHelper.removeData(key: "myId");
+      CacheHelper.removeData(key: "isDark");
       AppToast.success("Logging out user successfully");
       return true;
     } catch (e) {
@@ -276,10 +278,10 @@ class AppCtrl extends Cubit<AppStates> {
           isRead: false,
         ).toJson());
 
-    await _database
-        .collection('my_users')
-        .doc(newMessage.senderId)
-        .set({'isActive': true});
+    await _database.collection('my_users').doc(newMessage.senderId).set(
+      {'isActive': true},
+      SetOptions(merge: true),
+    );
     imagesUrl.clear();
   }
 
@@ -329,7 +331,10 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   void setUserActive(bool state) async {
-    await _database.collection('my_users').doc(myId).set({'isActive': state});
+    await _database.collection('my_users').doc(myId).set(
+      {'isActive': state},
+      SetOptions(merge: true),
+    );
   }
 
   //images
@@ -365,8 +370,7 @@ class AppCtrl extends Cubit<AppStates> {
   Future<void> _uploadImages() async {
     for (var image in selectedImages) {
       // Generate a unique file name for each image
-      Reference storageRef =
-          FirebaseStorage.instance.ref().child('uploads/${image.path}');
+      Reference storageRef = _storage.ref().child('uploads/${image.path}');
 
       try {
         // Upload image to Firebase Storage
@@ -383,8 +387,7 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   Future<String> _uploadAudioFile(File audioFile) async {
-    final storageRef =
-        FirebaseStorage.instance.ref().child('audio/${audioFile.path}');
+    final storageRef = _storage.ref().child('audio/${audioFile.path}');
     try {
       UploadTask uploadTask = storageRef.putFile(audioFile);
       await uploadTask.whenComplete(() {});
@@ -397,6 +400,83 @@ class AppCtrl extends Cubit<AppStates> {
 
   void refresh() {
     emit(RefreshState());
+  }
+
+  //profile
+
+  File? selectedProfileImage;
+  String? profileImageUrl;
+
+  Future<void> selectProfileImage() async {
+    selectedProfileImage = null;
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.image,
+      );
+      if (result != null) {
+        selectedProfileImage = File(result.paths.first!);
+      }
+    } catch (e) {
+      AppToast.error("Error picking image: ${e.toString()}");
+    }
+    emit(SelectImagesState());
+  }
+
+  Future<String?> _uploadProfileImage() async {
+    Reference storageRef =
+        _storage.ref().child('profiles/${selectedProfileImage!.path}');
+
+    try {
+      // Upload image to Firebase Storage
+      UploadTask uploadTask = storageRef.putFile(selectedProfileImage!);
+      await uploadTask.whenComplete(() {});
+
+      // Get the download URL and add it to the list
+      String downloadUrl = await storageRef.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      AppToast.error("Error uploading image: $e");
+      return null;
+    }
+  }
+
+  final profileNameCtrl = TextEditingController();
+
+  void editProfile(String userId) async {
+    if (profileNameCtrl.text.isEmpty) {
+      AppToast.error("Please enter a name");
+      return;
+    }
+    emit(UpdateProfileLoadingState());
+    String? url;
+    if (selectedProfileImage != null) {
+      url = await _uploadProfileImage();
+    }
+    Map<String, dynamic> data = {};
+
+    if (url == null) {
+      data = {
+        'name': profileNameCtrl.text,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+    } else {
+      data = {
+        'name': profileNameCtrl.text,
+        'avatar': url,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+    }
+    _database.collection('users').doc(userId).update(data).then((response) {
+      AppToast.success("Profile updated successfully");
+      selectedProfileImage = null;
+      profileImageUrl = null;
+      profileNameCtrl.clear();
+      emit(UpdateProfileSuccessState());
+    }).catchError((error) {
+      emit(UpdateProfileErrorState());
+      AppToast.error("Error updating profile: $error");
+    });
   }
 }
 
@@ -441,3 +521,10 @@ class UploadVideoLoadingState extends AppStates {}
 class UploadVideoSuccessState extends AppStates {}
 
 class RefreshState extends AppStates {}
+
+//profile
+class UpdateProfileLoadingState extends AppStates {}
+
+class UpdateProfileSuccessState extends AppStates {}
+
+class UpdateProfileErrorState extends AppStates {}
