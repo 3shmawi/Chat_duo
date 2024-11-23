@@ -38,6 +38,8 @@ class _DetailsViewState extends State<DetailsView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     });
+    _scrollController.addListener(_checkIfAtBottom);
+
     Future.delayed(const Duration(milliseconds: 300)).then((_) => _goBottom());
     _focusNode.addListener(() {
       setState(() {
@@ -58,8 +60,7 @@ class _DetailsViewState extends State<DetailsView> {
   @override
   void dispose() {
     _focusNode.dispose();
-    // socket.disconnect();
-    // socket.dispose();
+    _scrollController.removeListener(_checkIfAtBottom);
     _timer.cancel();
     super.dispose();
   }
@@ -71,6 +72,15 @@ class _DetailsViewState extends State<DetailsView> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
+    }
+  }
+
+  void _checkIfAtBottom() {
+    if (_scrollController.position.atEdge) {
+      if (_scrollController.position.pixels !=
+          _scrollController.position.maxScrollExtent) {
+        _goBottom();
+      }
     }
   }
 
@@ -121,25 +131,43 @@ class _DetailsViewState extends State<DetailsView> {
                           child: const UseCaseWidget(UseCases.empty));
                     }
 
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.only(
-                        bottom: 20,
-                      ),
-                      itemBuilder: (context, index) =>
-                          _isAudioUrl(messages[index].message)
-                              ? AudioMessageWidget(
-                                  date: messages[index].createdAt,
-                                  audioUrl: messages[index].message,
-                                  isSender: widget.receiver.id ==
-                                      messages[index].receiverId,
-                                )
-                              : _ChatItem(
-                                  message: messages[index],
-                                  isSender: widget.receiver.id ==
-                                      messages[index].receiverId,
-                                ),
-                      itemCount: messages.length,
+                    return Stack(
+                      children: [
+                        ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.only(
+                            bottom: 20,
+                          ),
+                          itemBuilder: (context, index) =>
+                              _isAudioUrl(messages[index].message)
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10.0),
+                                      child: AudioMessageWidget(
+                                        date: messages[index].createdAt,
+                                        audioUrl: messages[index].message,
+                                        isSender: widget.receiver.id ==
+                                            messages[index].receiverId,
+                                      ),
+                                    )
+                                  : _ChatItem(
+                                      message: messages[index],
+                                      isSender: widget.receiver.id ==
+                                          messages[index].receiverId,
+                                    ),
+                          itemCount: messages.length,
+                        ),
+                        Positioned(
+                          bottom: 10,
+                          left: 6,
+                          child: IconButton(
+                            onPressed: _goBottom,
+                            icon: const Icon(
+                              CupertinoIcons.arrow_down_circle,
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   }
                   return SingleChildScrollView(
@@ -224,6 +252,11 @@ class _DetailsViewState extends State<DetailsView> {
                               ),
                             ),
                           ),
+                          onTapOutside: (_) {
+                            _focusNode.unfocus();
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                          textCapitalization: TextCapitalization.sentences,
                         ),
                       ),
                       cubit.messageCtrl.text.isNotEmpty

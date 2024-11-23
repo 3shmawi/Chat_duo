@@ -121,9 +121,9 @@ class _LayoutViewState extends State<LayoutView> with WidgetsBindingObserver {
                                     }
                                   });
                                 },
-                                child: const Text('Logout'),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.grey),
+                                child: const Text('Logout'),
                               ),
                             ),
                           ],
@@ -279,7 +279,9 @@ class ChatItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          chat.lastMessage,
+                          _isAudioUrl(chat.lastMessage)
+                              ? "Audio ၊၊||၊|။||||။၊|။|||။|||။၊|။၊ "
+                              : chat.lastMessage,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -305,6 +307,11 @@ class ChatItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isAudioUrl(String url) {
+    final audioExtensions = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
+    return audioExtensions.any((ext) => url.toLowerCase().contains(ext));
   }
 }
 

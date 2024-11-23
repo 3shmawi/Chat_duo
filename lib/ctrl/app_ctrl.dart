@@ -22,7 +22,7 @@ class AppCtrl extends Cubit<AppStates> {
   List<UserModel> allUsers = [];
   List<UserModel> filteredUsers = [];
 
-  final _auth = FirebaseAuth.instance;
+  final _auth = FirebaseAuth.instance; //uid
   final _database = FirebaseFirestore.instance;
   final _storage = FirebaseStorage.instance;
 
