@@ -11,6 +11,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../model/group.dart';
+
 class LayoutView extends StatefulWidget {
   const LayoutView({super.key});
 
@@ -47,134 +49,223 @@ class _LayoutViewState extends State<LayoutView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.red,
-        leadingWidth: 30,
-        title: const Text(
-          'Chat Duo',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.red,
+          leadingWidth: 30,
+          title: const Text(
+            'Chat Duo',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) => const BottomModelSheet(true),
+                );
+              },
+              child: const Text(
+                "New Group",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            BlocBuilder<AppCtrl, AppStates>(
+              buildWhen: (_, current) => current is DarkModeToggledState,
+              builder: (context, state) {
+                final ctrl = context.read<AppCtrl>();
+                return IconButton(
+                  icon: Icon(
+                    ctrl.isDarkMode
+                        ? CupertinoIcons.lightbulb_fill
+                        : CupertinoIcons.lightbulb_slash_fill,
+                    color: ctrl.isDarkMode ? Colors.yellowAccent : Colors.black,
+                  ),
+                  onPressed: () {
+                    ctrl.toggleDarkMode();
+                  },
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(CupertinoIcons.profile_circled),
+              onPressed: () {
+                toPage(context, ProfileView(AppCtrl().myId!));
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                showCupertinoDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text(
+                          'Logout',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        content: const Text('Are you sure you want to logout?'),
+                        actions: <Widget>[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    context
+                                        .read<AppCtrl>()
+                                        .logout()
+                                        .then((isLoggedOut) {
+                                      if (isLoggedOut) {
+                                        toAndFinish(
+                                            context, const LoginScreen());
+                                      }
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey),
+                                  child: const Text('Logout'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    });
+              },
+            ),
+          ],
+          bottom: const TabBar(
+            unselectedLabelColor: Colors.white24,
+            labelColor: Colors.white,
+            dividerColor: Colors.transparent,
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Text('Personal'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Text('My Groups'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          BlocBuilder<AppCtrl, AppStates>(
-            buildWhen: (_, current) => current is DarkModeToggledState,
-            builder: (context, state) {
-              final ctrl = context.read<AppCtrl>();
-              return IconButton(
-                icon: Icon(
-                  ctrl.isDarkMode
-                      ? CupertinoIcons.lightbulb_fill
-                      : CupertinoIcons.lightbulb_slash_fill,
-                  color: ctrl.isDarkMode ? Colors.yellowAccent : Colors.black,
-                ),
-                onPressed: () {
-                  ctrl.toggleDarkMode();
-                },
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(CupertinoIcons.profile_circled),
-            onPressed: () {
-              toPage(context, ProfileView(AppCtrl().myId!));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              showCupertinoDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text(
-                        'Logout',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                      content: const Text('Are you sure you want to logout?'),
-                      actions: <Widget>[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  context
-                                      .read<AppCtrl>()
-                                      .logout()
-                                      .then((isLoggedOut) {
-                                    if (isLoggedOut) {
-                                      toAndFinish(context, const LoginScreen());
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey),
-                                child: const Text('Logout'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  });
-            },
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<ChatModel>>(
-          stream: AppCtrl().getMyUsers(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.active) {
-              final users = snapshot.data;
-              if (users == null || users.isEmpty) {
-                return const UseCaseWidget(UseCases.empty);
-              }
+        body: TabBarView(children: [
+          StreamBuilder<List<ChatModel>>(
+              stream: AppCtrl().getMyUsers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  final users = snapshot.data;
+                  if (users == null || users.isEmpty) {
+                    return const UseCaseWidget(UseCases.empty);
+                  }
 
-              return ListView.builder(
-                itemBuilder: (context, index) => ChatItem(users[index]),
-                itemCount: users.length,
-              );
-            }
-            return const UseCaseWidget(UseCases.loading);
-          }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            builder: (context) => const BottomModelSheet(),
-          );
-        },
-        child: const Icon(Icons.chat_bubble_outline),
+                  return ListView.builder(
+                    itemBuilder: (context, index) => ChatItem(
+                      chat: users[index],
+                      isGroup: false,
+                    ),
+                    itemCount: users.length,
+                  );
+                }
+                return const UseCaseWidget(UseCases.loading);
+              }),
+          StreamBuilder<List<GroupChatModel>>(
+              stream: AppCtrl().getMyGroups(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  final groups = snapshot.data;
+                  if (snapshot.hasError) {
+                    print(snapshot.error);
+                  }
+                  if (groups == null || groups.isEmpty) {
+                    return const UseCaseWidget(UseCases.empty);
+                  }
+
+                  return ListView.builder(
+                    itemBuilder: (context, index) => ChatItem(
+                      group: groups[index],
+                      isGroup: true,
+                    ),
+                    itemCount: groups.length,
+                  );
+                }
+                return const UseCaseWidget(UseCases.loading);
+              })
+        ]),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              builder: (context) => const BottomModelSheet(false),
+            );
+          },
+          child: const Icon(Icons.chat_bubble_outline),
+        ),
       ),
     );
   }
 }
 
 class ChatItem extends StatelessWidget {
-  const ChatItem(this.chat, {super.key});
+  const ChatItem({
+    required this.isGroup,
+    this.chat,
+    this.group,
+    super.key,
+  });
 
-  final ChatModel chat;
+  final ChatModel? chat;
+  final GroupChatModel? group;
+  final bool isGroup;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        AppCtrl().updateReadingState(chat.user.id);
-        toPage(context, DetailsView(chat.user));
+        AppCtrl()
+            .updateReadingState(isGroup ? group!.id : chat!.user.id, isGroup);
+        toPage(
+          context,
+          DetailsView(
+            isGroupChat: isGroup,
+            receiver: chat?.user,
+            groupChatModel: group,
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -210,39 +301,41 @@ class ChatItem extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white,
-                    backgroundImage: NetworkImage(chat.user.avatar),
+                    backgroundImage: NetworkImage(
+                        isGroup ? group!.groupPicture : chat!.user.avatar),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: CircleAvatar(
-                    radius: 9,
-                    backgroundColor: Colors.white,
-                    child: StreamBuilder<bool>(
-                        stream: AppCtrl().isUserActive(chat.user.id),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.active) {
-                            final isActive = snapshot.data;
-                            if (isActive == null) {
-                              return const CircleAvatar(
+                if (!isGroup)
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: CircleAvatar(
+                      radius: 9,
+                      backgroundColor: Colors.white,
+                      child: StreamBuilder<bool>(
+                          stream: AppCtrl().isUserActive(chat!.user.id),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.active) {
+                              final isActive = snapshot.data;
+                              if (isActive == null) {
+                                return const CircleAvatar(
+                                  radius: 7.5,
+                                  backgroundColor: Colors.grey,
+                                );
+                              }
+                              return CircleAvatar(
                                 radius: 7.5,
-                                backgroundColor: Colors.grey,
+                                backgroundColor:
+                                    isActive ? Colors.green : Colors.grey,
                               );
                             }
-                            return CircleAvatar(
+                            return const CircleAvatar(
                               radius: 7.5,
-                              backgroundColor:
-                                  isActive ? Colors.green : Colors.grey,
+                              backgroundColor: Colors.grey,
                             );
-                          }
-                          return const CircleAvatar(
-                            radius: 7.5,
-                            backgroundColor: Colors.grey,
-                          );
-                        }),
-                  ),
-                )
+                          }),
+                    ),
+                  )
               ],
             ),
             const SizedBox(width: 10),
@@ -255,21 +348,13 @@ class ChatItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          chat.user.name,
+                          isGroup ? group!.groupTitle : chat!.user.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () {},
-                        child: const Icon(
-                          Icons.more_horiz,
                         ),
                       ),
                     ],
@@ -279,15 +364,19 @@ class ChatItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          _isAudioUrl(chat.lastMessage)
+                          _isAudioUrl(isGroup
+                                  ? group!.lastMessage
+                                  : chat!.lastMessage)
                               ? "Audio ၊၊||၊|။||||။၊|။|||။|||။၊|။၊ "
-                              : chat.lastMessage,
+                              : isGroup
+                                  ? group!.lastMessage
+                                  : chat!.lastMessage,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      if (!chat.isRead)
+                      if (isRead())
                         const CircleAvatar(
                           radius: 6,
                           backgroundColor: Colors.white,
@@ -297,7 +386,13 @@ class ChatItem extends StatelessWidget {
                           ),
                         ),
                       const SizedBox(width: 10),
-                      Text(chat.date.isEmpty ? "" : daysBetween(chat.date)),
+                      Text(isGroup
+                          ? group!.date.isEmpty
+                              ? ""
+                              : daysBetween(group!.date)
+                          : chat!.date.isEmpty
+                              ? ""
+                              : daysBetween(chat!.date)),
                     ],
                   ),
                 ],
@@ -309,6 +404,13 @@ class ChatItem extends StatelessWidget {
     );
   }
 
+  bool isRead() {
+    if (isGroup) {
+      return group!.isRead;
+    }
+    return chat!.isRead;
+  }
+
   bool _isAudioUrl(String url) {
     final audioExtensions = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
     return audioExtensions.any((ext) => url.toLowerCase().contains(ext));
@@ -316,7 +418,9 @@ class ChatItem extends StatelessWidget {
 }
 
 class BottomModelSheet extends StatelessWidget {
-  const BottomModelSheet({super.key});
+  const BottomModelSheet(this.isGroup, {super.key});
+
+  final bool isGroup;
 
   @override
   Widget build(BuildContext context) {
@@ -349,6 +453,39 @@ class BottomModelSheet extends StatelessWidget {
               ],
             ),
             Divider(color: Colors.grey.shade400),
+            if (isGroup)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: cubit.groupTitleCtrl,
+                        decoration: InputDecoration(
+                          hintText: "Group Title",
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade400,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          cubit.createGroup();
+                        },
+                        child: const Text("CREATE"),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: state is GetAllUsersLoadingState
                   ? const UseCaseWidget(UseCases.loading)
@@ -373,14 +510,27 @@ class BottomModelSheet extends StatelessWidget {
         cubit.refreshAllUsers();
       },
       child: ListView.builder(
-        itemBuilder: (context, index) => ChatItem(
-          ChatModel(
-            lastMessage:
-                "Start chat with ${allUsers[index].name.split(" ").first}...",
-            date: "",
-            user: allUsers[index],
-            isRead: false,
-          ),
+        itemBuilder: (context, index) => Stack(
+          alignment: Alignment.centerRight,
+          children: [
+            ChatItem(
+              isGroup: false,
+              chat: ChatModel(
+                lastMessage:
+                    "Start chat with ${allUsers[index].name.split(" ").first}...",
+                date: "",
+                user: allUsers[index],
+                isRead: false,
+              ),
+            ),
+            if (isGroup)
+              Checkbox(
+                value: cubit.isSelected(allUsers[index]),
+                onChanged: (v) {
+                  cubit.addOrRemoveUser(allUsers[index]);
+                },
+              ),
+          ],
         ),
         itemCount: allUsers.length,
       ),
@@ -388,9 +538,9 @@ class BottomModelSheet extends StatelessWidget {
   }
 
   Widget _bar(AppCtrl cubit) => AnimatedCrossFade(
-        firstChild: const Text(
-          "NEW CHAT",
-          style: TextStyle(
+        firstChild: Text(
+          isGroup ? "NEW GROUP [${cubit.selectedUsers.length}]" : "NEW CHAT",
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Colors.red,

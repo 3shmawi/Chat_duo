@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chat_duo/model/chat.dart';
+import 'package:chat_duo/model/group.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/toast.dart';
@@ -197,8 +198,13 @@ class AppCtrl extends Cubit<AppStates> {
             .toList());
   }
 
-  void sendMessage(UserModel receiver, UserModel sender,
-      {File? audioFile}) async {
+  void sendMessage(
+    UserModel sender, {
+    UserModel? receiver,
+    File? audioFile,
+    bool isGroup = false,
+    GroupChatModel? groupModel,
+  }) async {
     if (messageCtrl.text.isEmpty &&
         selectedImages.isEmpty &&
         audioFile == null) {
@@ -229,55 +235,79 @@ class AppCtrl extends Cubit<AppStates> {
       createdAt: newId,
       updatedAt: newId,
       senderId: sender.id,
-      receiverId: receiver.id,
+      receiverId: receiver?.id,
+      senderAvatar: sender.avatar,
+      senderName: sender.name,
       imgUrl: imagesUrl,
     );
     messageCtrl.clear();
 
-    await _database
-        .collection("my_users")
-        .doc(newMessage.senderId)
-        .collection("chats")
-        .doc(newMessage.receiverId)
-        .collection("messages")
-        .doc(newMessage.id)
-        .set(newMessage.toJson());
+    if (isGroup) {
+      await _database
+          .collection("groups")
+          .doc(groupModel!.id)
+          .collection("messages")
+          .doc(newMessage.id)
+          .set(newMessage.toJson());
 
-    await _database
-        .collection("my_users")
-        .doc(newMessage.receiverId)
-        .collection("chats")
-        .doc(newMessage.senderId)
-        .collection("messages")
-        .doc(newMessage.id)
-        .set(newMessage.toJson());
+      await _database.collection("groups").doc(groupModel.id).set(
+          groupModel
+              .copyWith(
+                lastMessage: newMessage.message,
+                isRead: false,
+                date: newMessage.createdAt,
+              )
+              .toJson(),
+          SetOptions(
+            merge: true,
+          ));
+    } else {
+      await _database
+          .collection("my_users")
+          .doc(newMessage.senderId)
+          .collection("chats")
+          .doc(newMessage.receiverId)
+          .collection("messages")
+          .doc(newMessage.id)
+          .set(newMessage.toJson());
 
-    await _database
-        .collection("my_users")
-        .doc(newMessage.receiverId)
-        .collection("chats")
-        .doc(newMessage.senderId)
-        .set(ChatModel(
-          lastMessage:
-              newMessage.message.isEmpty ? "Sent a image" : newMessage.message,
-          date: newMessage.createdAt,
-          user: sender,
-          isRead: false,
-        ).toJson());
+      await _database
+          .collection("my_users")
+          .doc(newMessage.receiverId)
+          .collection("chats")
+          .doc(newMessage.senderId)
+          .collection("messages")
+          .doc(newMessage.id)
+          .set(newMessage.toJson());
 
-    await _database
-        .collection("my_users")
-        .doc(newMessage.senderId)
-        .collection("chats")
-        .doc(newMessage.receiverId)
-        .set(ChatModel(
-          lastMessage:
-              newMessage.message.isEmpty ? "Sent a image" : newMessage.message,
-          date: newMessage.createdAt,
-          user: receiver,
-          isRead: false,
-        ).toJson());
+      await _database
+          .collection("my_users")
+          .doc(newMessage.receiverId)
+          .collection("chats")
+          .doc(newMessage.senderId)
+          .set(ChatModel(
+            lastMessage: newMessage.message.isEmpty
+                ? "Sent a image"
+                : newMessage.message,
+            date: newMessage.createdAt,
+            user: sender,
+            isRead: false,
+          ).toJson());
 
+      await _database
+          .collection("my_users")
+          .doc(newMessage.senderId)
+          .collection("chats")
+          .doc(newMessage.receiverId)
+          .set(ChatModel(
+            lastMessage: newMessage.message.isEmpty
+                ? "Sent a image"
+                : newMessage.message,
+            date: newMessage.createdAt,
+            user: receiver!,
+            isRead: false,
+          ).toJson());
+    }
     await _database.collection('my_users').doc(newMessage.senderId).set(
       {'isActive': true},
       SetOptions(merge: true),
@@ -285,15 +315,21 @@ class AppCtrl extends Cubit<AppStates> {
     imagesUrl.clear();
   }
 
-  void updateReadingState(String receiverId) async {
-    await _database
-        .collection("my_users")
-        .doc(myId)
-        .collection("chats")
-        .doc(receiverId)
-        .update({
-      'isRead': true,
-    });
+  void updateReadingState(String receiverId, bool isGroup) async {
+    if (isGroup) {
+      await _database.collection("groups").doc(receiverId).update({
+        'isRead': true,
+      });
+    } else {
+      await _database
+          .collection("my_users")
+          .doc(myId)
+          .collection("chats")
+          .doc(receiverId)
+          .update({
+        'isRead': true,
+      });
+    }
   }
 
   void updateActiveState(String receiverId, bool state) async {
@@ -477,6 +513,93 @@ class AppCtrl extends Cubit<AppStates> {
       emit(UpdateProfileErrorState());
       AppToast.error("Error updating profile: $error");
     });
+  }
+
+//groups
+
+//create
+
+  final groupTitleCtrl = TextEditingController();
+
+  void createGroup() async {
+    if (groupTitleCtrl.text.isEmpty) {
+      AppToast.error("Please enter a group title");
+      return;
+    }
+    if (selectedUsers.length < 3) {
+      AppToast.error("Group must have at least 3 members");
+      return;
+    }
+    try {
+      final newId = DateTime.now().toIso8601String();
+      final newGroupModel = GroupChatModel(
+        id: newId,
+        lastMessage: "The group has been created",
+        date: newId,
+        users: selectedUsers,
+        isRead: false,
+        groupPicture:
+            "https://i.pinimg.com/736x/6d/44/03/6d440395bb475a90bd32aaeea9f61e3a.jpg",
+        groupTitle: groupTitleCtrl.text,
+      );
+      await _database
+          .collection("groups")
+          .doc(newId)
+          .set(newGroupModel.toJson());
+      AppToast.success("The group has been created successfully");
+      groupTitleCtrl.clear();
+      selectedUsers.clear();
+    } catch (e) {
+      AppToast.error("Error creating group: $e");
+      rethrow;
+    }
+  }
+
+//get my groups
+  Stream<List<GroupChatModel>> getMyGroups() {
+    return _database
+        .collection("groups")
+        .where("users", arrayContains: user)
+        .orderBy("date", descending: true)
+        .snapshots()
+        .map((response) => response.docs
+            .map((user) => GroupChatModel.fromJson(user.data()))
+            .toList());
+  }
+
+  Stream<List<MessageModel>> getGroupMessages(String groupId) {
+    return _database
+        .collection("groups")
+        .doc(groupId)
+        .collection("messages")
+        .orderBy("created_at", descending: false)
+        .snapshots()
+        .map((response) => response.docs
+            .map((doc) => MessageModel.fromJson(doc.data()))
+            .toList());
+  }
+
+  List<UserModel> selectedUsers = [];
+
+  void addOrRemoveUser(UserModel user) {
+    if (!selectedUsers.contains(this.user)) {
+      selectedUsers.add(this.user!);
+    }
+    if (selectedUsers.contains(user)) {
+      selectedUsers.remove(user);
+    } else {
+      selectedUsers.add(user);
+    }
+    emit(RefreshState());
+  }
+
+  void clearAllSelectedUsers() {
+    selectedUsers.clear();
+    emit(RefreshState());
+  }
+
+  bool isSelected(UserModel user) {
+    return selectedUsers.contains(user);
   }
 }
 

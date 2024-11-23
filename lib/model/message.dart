@@ -4,7 +4,9 @@ class MessageModel {
   final String createdAt;
   final String updatedAt;
   final String senderId;
-  final String receiverId;
+  final String? receiverId;
+  final String? senderName;
+  final String? senderAvatar;
   final List<String> imgUrl;
 
   MessageModel({
@@ -14,6 +16,8 @@ class MessageModel {
     required this.updatedAt,
     required this.senderId,
     required this.receiverId,
+    required this.senderName,
+    required this.senderAvatar,
     required this.imgUrl,
   });
 
@@ -24,7 +28,9 @@ class MessageModel {
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
       senderId: json['sender_id'] as String,
-      receiverId: json['receiver_id'] as String,
+      receiverId: json['receiver_id'] as String?,
+      senderName: json['sender_name'] as String?,
+      senderAvatar: json['sender_avatar'] as String?,
       imgUrl: List<String>.from(json['img_url'] ?? []),
     );
   }
@@ -37,6 +43,8 @@ class MessageModel {
       'updated_at': updatedAt,
       'sender_id': senderId,
       'receiver_id': receiverId,
+      'sender_name': senderName,
+      'sender_avatar': senderAvatar,
       'img_url': imgUrl,
     };
   }

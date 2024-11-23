@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:chat_duo/ctrl/app_ctrl.dart';
+import 'package:chat_duo/model/group.dart';
 import 'package:chat_duo/model/message.dart';
 import 'package:chat_duo/model/user.dart';
 import 'package:chat_duo/screens/_resources/shared/navigation.dart';
@@ -18,9 +19,15 @@ import 'display_image.dart';
 import 'image_or_video_display.dart';
 
 class DetailsView extends StatefulWidget {
-  const DetailsView(this.receiver, {super.key});
+  const DetailsView(
+      {this.receiver,
+      this.groupChatModel,
+      this.isGroupChat = false,
+      super.key});
 
-  final UserModel receiver;
+  final UserModel? receiver;
+  final GroupChatModel? groupChatModel;
+  final bool isGroupChat;
 
   @override
   State<DetailsView> createState() => _DetailsViewState();
@@ -102,15 +109,23 @@ class _DetailsViewState extends State<DetailsView> {
               ),
             ),
             GestureDetector(
-              onTap: () => toPage(context, ProfileView(widget.receiver.id)),
+              onTap: widget.isGroupChat
+                  ? null
+                  : () => toPage(context, ProfileView(widget.receiver!.id)),
               child: CircleAvatar(
                 radius: 25,
-                backgroundImage: NetworkImage(widget.receiver.avatar),
+                backgroundImage: NetworkImage(
+                  widget.isGroupChat
+                      ? widget.groupChatModel!.groupPicture
+                      : widget.receiver!.avatar,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              widget.receiver.name,
+              widget.isGroupChat
+                  ? widget.groupChatModel!.groupTitle
+                  : widget.receiver!.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             )
@@ -121,14 +136,19 @@ class _DetailsViewState extends State<DetailsView> {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-                stream: AppCtrl().getMessages(widget.receiver.id),
+                stream: widget.isGroupChat
+                    ? AppCtrl().getGroupMessages(widget.groupChatModel!.id)
+                    : AppCtrl().getMessages(widget.receiver!.id),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active) {
                     final messages = snapshot.data;
                     if (messages == null || messages.isEmpty) {
-                      return SingleChildScrollView(
+                      return Center(
+                        child: SingleChildScrollView(
                           controller: _scrollController,
-                          child: const UseCaseWidget(UseCases.empty));
+                          child: const UseCaseWidget(UseCases.empty),
+                        ),
+                      );
                     }
 
                     return Stack(
@@ -146,14 +166,15 @@ class _DetailsViewState extends State<DetailsView> {
                                       child: AudioMessageWidget(
                                         date: messages[index].createdAt,
                                         audioUrl: messages[index].message,
-                                        isSender: widget.receiver.id ==
-                                            messages[index].receiverId,
+                                        isSender: sender!.id ==
+                                            messages[index].senderId,
                                       ),
                                     )
                                   : _ChatItem(
                                       message: messages[index],
-                                      isSender: widget.receiver.id ==
-                                          messages[index].receiverId,
+                                      isGroup: widget.isGroupChat,
+                                      isSender: sender!.id ==
+                                          messages[index].senderId,
                                     ),
                           itemCount: messages.length,
                         ),
@@ -262,7 +283,12 @@ class _DetailsViewState extends State<DetailsView> {
                       cubit.messageCtrl.text.isNotEmpty
                           ? IconButton(
                               onPressed: () {
-                                cubit.sendMessage(widget.receiver, sender!);
+                                cubit.sendMessage(
+                                  sender!,
+                                  receiver: widget.receiver,
+                                  isGroup: widget.isGroupChat,
+                                  groupModel: widget.groupChatModel,
+                                );
                                 _goBottom();
                               },
                               icon: const Icon(
@@ -272,8 +298,13 @@ class _DetailsViewState extends State<DetailsView> {
                             )
                           : SocialMediaRecorder(
                               sendRequestFunction: (soundFile, time) {
-                                cubit.sendMessage(widget.receiver, sender!,
-                                    audioFile: soundFile);
+                                cubit.sendMessage(
+                                  sender!,
+                                  receiver: widget.receiver,
+                                  isGroup: widget.isGroupChat,
+                                  groupModel: widget.groupChatModel,
+                                  audioFile: soundFile,
+                                );
                                 print(soundFile.path);
                                 print(time);
                               },
@@ -305,16 +336,25 @@ class _ChatItem extends StatelessWidget {
   const _ChatItem({
     required this.message,
     required this.isSender,
+    required this.isGroup,
   });
 
   final MessageModel message;
   final bool isSender;
+  final bool isGroup;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         if (isSender) const Expanded(child: SizedBox()),
+        if (!isSender)
+          CircleAvatar(
+            radius: 15,
+            backgroundColor: Colors.black26,
+            backgroundImage: NetworkImage(message.senderAvatar ??
+                "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?size=626&ext=jpg"),
+          ),
         Expanded(
           flex: 3,
           child: Column(
@@ -364,12 +404,21 @@ class _ChatItem extends StatelessWidget {
                         ? CrossAxisAlignment.start
                         : CrossAxisAlignment.end,
                     children: [
+                      if (!isSender && isGroup)
+                        Text(
+                          message.senderName ?? "",
+                          style: TextStyle(
+                            color: isSender ? Colors.white : Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       if (message.message.isNotEmpty)
                         Text(
                           message.message,
                           style: TextStyle(
                             color: isSender ? Colors.white : Colors.black,
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                       Text(
