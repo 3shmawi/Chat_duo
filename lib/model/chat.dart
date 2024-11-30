@@ -9,6 +9,7 @@ class ChatModel {
   final String? groupPicture;
   final String? groupTitle;
   final String? senderId;
+  final bool isGroup;
 
   ChatModel({
     required this.id,
@@ -19,6 +20,7 @@ class ChatModel {
     this.groupPicture,
     this.groupTitle,
     this.senderId,
+    this.isGroup = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class ChatModel {
         'groupPicture': groupPicture,
         'groupTitle': groupTitle,
         'senderId': senderId,
+        'isGroup': users.length > 2 ? true : false,
       };
     }
     return {
@@ -51,13 +54,16 @@ class ChatModel {
       users: (json['users'] as List<dynamic>)
           .map((userJson) =>
               UserModel.fromJson(userJson as Map<String, dynamic>))
-          .toList(), // Explicitly convert each item to UserModel
+          .toList(),
+      // Explicitly convert each item to UserModel
       isRead: json['isRead'],
       groupPicture: json['groupPicture'],
       groupTitle: json['groupTitle'],
       senderId: json['senderId'],
+      isGroup: json['isGroup'] ?? false,
     );
   }
+
   ChatModel copyWith({
     String? lastMessage,
     String? date,
@@ -66,6 +72,7 @@ class ChatModel {
     String? groupPicture,
     String? groupTitle,
     String? senderId,
+    bool? isGroup,
   }) {
     return ChatModel(
       lastMessage: lastMessage ?? this.lastMessage,
@@ -76,6 +83,7 @@ class ChatModel {
       groupTitle: groupTitle ?? this.groupTitle,
       senderId: senderId ?? this.senderId,
       id: id,
+      isGroup: isGroup ?? this.isGroup,
     );
   }
 }

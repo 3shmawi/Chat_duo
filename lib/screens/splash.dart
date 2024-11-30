@@ -3,6 +3,7 @@ import 'package:chat_duo/screens/_resources/shared/navigation.dart';
 import 'package:chat_duo/screens/auth/login.dart';
 import 'package:chat_duo/screens/layout/home_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
   _start() async {
     final ctrl = AppCtrl();
     if (ctrl.myId != null) {
-      await ctrl.getMyData(ctrl.myId!);
+      await context.read<AppCtrl>().getMyData(ctrl.myId!);
       toAndReplace(context, const HomeView());
     } else {
       Future.delayed(const Duration(seconds: 2)).then(

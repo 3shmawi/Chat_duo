@@ -56,8 +56,28 @@ class HomeView extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            const Center(
-              child: Text("data"),
+            StreamBuilder(
+              stream: AppCtrl().getMyUsers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  final groups = snapshot.data;
+                  if (groups == null) {
+                    return AppUseCase(
+                      UseCase.failure,
+                      errorMessage: snapshot.error.toString(),
+                    );
+                  }
+                  if (groups.isEmpty) {
+                    return const AppUseCase(UseCase.empty);
+                  }
+                  return ListView.builder(
+                    itemBuilder: (context, index) =>
+                        ChatHomeItem(groups[index]),
+                    itemCount: groups.length,
+                  );
+                }
+                return const AppUseCase(UseCase.loading);
+              },
             ),
             StreamBuilder(
               stream: AppCtrl().getMyGroups(),

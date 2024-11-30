@@ -13,7 +13,6 @@ class ChatHomeItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isGroup = chat.users.length > 2;
     return GestureDetector(
       onTap: () {
         toPage(context, DetailsPage(chat));
@@ -43,7 +42,7 @@ class ChatHomeItem extends StatelessWidget {
               child: CircleAvatar(
                 radius: 40,
                 backgroundImage: NetworkImage(
-                  isGroup ? chat.groupPicture! : chat.users.first.avatar,
+                  chat.isGroup ? chat.groupPicture! : chat.users.first.avatar,
                 ),
               ),
             ),
@@ -57,7 +56,7 @@ class ChatHomeItem extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        isGroup ? chat.groupTitle! : chat.users.first.name,
+                        chat.isGroup ? chat.groupTitle! : chat.users.first.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -66,7 +65,7 @@ class ChatHomeItem extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (isGroup) Text("[${chat.users.length}]"),
+                    if (chat.isGroup) Text("[${chat.users.length}]"),
                   ],
                 ),
                 const SizedBox(height: 5),

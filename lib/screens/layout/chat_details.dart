@@ -16,8 +16,6 @@ class DetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(chat.id);
-    final isGroup = chat.users.length > 2;
     final ctrl = AppCtrl();
     final senderId = ctrl.myId;
     return Scaffold(
@@ -36,7 +34,7 @@ class DetailsPage extends StatelessWidget {
               child: CircleAvatar(
                 radius: 26,
                 backgroundImage: NetworkImage(
-                  isGroup ? chat.groupPicture! : chat.users.first.avatar,
+                  chat.isGroup ? chat.groupPicture! : chat.users.first.avatar,
                 ),
               ),
             ),
@@ -46,7 +44,7 @@ class DetailsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isGroup ? chat.groupTitle! : chat.users.first.name,
+                    chat.isGroup ? chat.groupTitle! : chat.users.first.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -55,7 +53,7 @@ class DetailsPage extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    isGroup
+                    chat.isGroup
                         ? getFirstNames(chat.users, senderId ?? "")
                         : "Online",
                     style: TextStyle(
@@ -73,7 +71,8 @@ class DetailsPage extends StatelessWidget {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-                stream: ctrl.getMessages(chatId: chat.id, isGroup: isGroup),
+                stream:
+                    ctrl.getMessages(chatId: chat.id, isGroup: chat.isGroup),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active) {
                     final messages = snapshot.data;
@@ -90,7 +89,7 @@ class DetailsPage extends StatelessWidget {
                       itemBuilder: (context, index) => _MessageItem(
                         message: messages[index],
                         myId: senderId ?? "",
-                        isGroup: isGroup,
+                        isGroup: chat.isGroup,
                       ),
                       itemCount: messages.length,
                     );
@@ -128,7 +127,8 @@ class DetailsPage extends StatelessWidget {
                       cubit.sendMessage(
                         users: chat.users,
                         chatId: chat.id,
-                        isGroup: isGroup,
+                        isGroup: chat.isGroup,
+                        chat: chat,
                       );
                     },
                     icon: const Icon(
@@ -199,6 +199,12 @@ class _MessageItem extends StatelessWidget {
               child: RichText(
                 text: TextSpan(
                   children: [
+                    // if (isGroup && !isSender) TextSpan(text: "message"),
+                    // if (isGroup && !isSender)
+                    //   const TextSpan(
+                    //     text: "\n",
+                    //     style: TextStyle(fontWeight: FontWeight.bold),
+                    //   ),
                     TextSpan(text: message.text),
                     const TextSpan(
                       text: "\n",

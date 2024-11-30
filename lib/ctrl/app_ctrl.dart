@@ -109,7 +109,7 @@ class AppCtrl extends Cubit<AppStates> {
   //get user data
   Future<void> getMyData(String myId) async {
     myData = await getUserData(myId);
-    print(myData!.name);
+    // print(myData!.name);
     emit(AuthSuccessState());
   }
 
@@ -148,6 +148,9 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   void addOrRemoveUser(UserModel user) {
+    if (!selectedUser.contains(myData)) {
+      selectedUser.add(myData!);
+    }
     if (selectedUser.contains(user)) {
       selectedUser.remove(user);
     } else {
@@ -157,7 +160,7 @@ class AppCtrl extends Cubit<AppStates> {
   }
 
   void createGroup() async {
-    if (selectedUser.length < 2) {
+    if (selectedUser.length < 3) {
       AppToast.info("Please select at least two users to create a group");
       return;
     }
@@ -166,10 +169,6 @@ class AppCtrl extends Cubit<AppStates> {
       return;
     }
     emit(GroupCreateLoadingState());
-
-    final mData = await getUserData(myId!);
-
-    selectedUser.add(mData);
 
     final newId = DateTime.now().toIso8601String();
 
@@ -254,21 +253,21 @@ class AppCtrl extends Cubit<AppStates> {
     required String chatId,
     bool isGroup = false,
     required List<UserModel> users,
+    ChatModel? chat,
   }) async {
     if (messageCtrl.text.isEmpty) {
       AppToast.info("Please enter a message");
       return;
     }
-    final user = await getUserData(myId!);
     final id = DateTime.now().toIso8601String();
     final message = MessageModel(
       id: id,
       text: messageCtrl.text,
       date: id,
-      senderId: user.id,
+      senderId: myData!.id,
       imagesUrl: [],
       isEdited: false,
-      senderPicture: user.avatar,
+      senderPicture: myData!.avatar,
     );
     if (isGroup) {
       await _database
@@ -294,12 +293,34 @@ class AppCtrl extends Cubit<AppStates> {
         'isRead': false,
       });
     } else {
-      await _database.collection("Salma_Chats").doc(chatId).update({
-        'lastMessage': message.text,
-        'date': message.date,
-        'isRead': false,
-      });
+      await _database.collection("Salma_Chats").doc(chat!.id).set(
+            chat
+                .copyWith(
+                  lastMessage: message.text,
+                  date: message.date,
+                  isRead: false,
+                  groupTitle: "",
+                  groupPicture: "",
+                )
+                .toJson(),
+            SetOptions(merge: true),
+          );
     }
+  }
+
+  Stream<List<ChatModel>> getMyUsers() {
+    return _database
+        .collection('Salma_Chats')
+        .where('users', arrayContains: myData)
+        .orderBy("date", descending: true)
+        .snapshots()
+        .map(
+      (snapshot) {
+        return snapshot.docs
+            .map((doc) => ChatModel.fromJson(doc.data()))
+            .toList();
+      },
+    );
   }
 }
 

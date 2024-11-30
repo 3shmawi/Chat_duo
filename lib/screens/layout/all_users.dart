@@ -47,33 +47,40 @@ class AllUsersPage extends StatelessWidget {
                       : Column(
                           children: [
                             Expanded(
-                              child: ListView.builder(
-                                itemBuilder: (context, index) => Stack(
-                                  alignment: Alignment.centerRight,
-                                  children: [
-                                    ChatHomeItem(
-                                      ChatModel(
-                                          id: newId(AppCtrl().myId ?? "",
-                                              users[index].id),
-                                          lastMessage: "Start chat with me,",
-                                          date: "",
-                                          users: [users[index]],
-                                          isRead: true),
-                                    ),
-                                    if (cubit.isGroupEnable)
-                                      Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: Checkbox(
-                                          value: cubit.selectedUser
-                                              .contains(users[index]),
-                                          onChanged: (v) {
-                                            cubit.addOrRemoveUser(users[index]);
-                                          },
-                                        ),
+                              child: RefreshIndicator(
+                                onRefresh: () async => cubit.refreshAllUsers(),
+                                child: ListView.builder(
+                                  itemBuilder: (context, index) => Stack(
+                                    alignment: Alignment.centerRight,
+                                    children: [
+                                      ChatHomeItem(
+                                        ChatModel(
+                                            id: newId(AppCtrl().myId ?? "",
+                                                users[index].id),
+                                            lastMessage: "Start chat with me,",
+                                            date: "",
+                                            users: [
+                                              users[index],
+                                              context.read<AppCtrl>().myData!
+                                            ],
+                                            isRead: true),
                                       ),
-                                  ],
+                                      if (cubit.isGroupEnable)
+                                        Padding(
+                                          padding: const EdgeInsets.all(10.0),
+                                          child: Checkbox(
+                                            value: cubit.selectedUser
+                                                .contains(users[index]),
+                                            onChanged: (v) {
+                                              cubit.addOrRemoveUser(
+                                                  users[index]);
+                                            },
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  itemCount: users.length,
                                 ),
-                                itemCount: users.length,
                               ),
                             ),
                             if (cubit.isGroupEnable)
