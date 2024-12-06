@@ -71,7 +71,7 @@ User Data
 Get User Data
 
 Path: lib>ctrl>app_ctrl >> getMyData(String myId)
-•	Description: Fetches the current user’s data from Firestore using their ID (uid).
+•	Description: Fetches the current user’s data from Firestore using their **ID** (uid).
 •	Helper Function: getUserData(String uid) retrieves a specific user’s data.
 ________________________________________________________________
 
@@ -135,7 +135,7 @@ Path: lib>ctrl>app_ctrl >> getMyUsers()
 •	Description: Streams the user’s one-on-one chats from Firestore.
 ________________________________________________________________
 
-State Management
+State Management 
 
 State Classes
 
